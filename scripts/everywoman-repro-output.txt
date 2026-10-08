@@ -1,0 +1,43 @@
+run started 2026-10-07T21:36:59.443Z
+
+=== 0) RPC flakiness probe (identical getAccountInfo x15 each) ===
+  FAIL [helius #1] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #2] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #3] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #4] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #5] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #6] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #7] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #8] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #9] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #10] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #11] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #12] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #13] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #14] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [helius #15] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  helius: 15/15 failed in 163.2s
+  FAIL [public devnet #1] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #2] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #3] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #4] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #5] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #6] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #7] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #8] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #9] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #10] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #11] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #12] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #13] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #14] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  FAIL [public devnet #15] failed to get info about account EUudw8Fg5qALMLgFGE5sgSSsUkmQ5nPV3v2GEke9MUYZ: TypeError: fetch failed
+  public devnet: 15/15 failed in 163.5s
+RPC: https://devnet.helius-rpc.com/?api-key=***
+program: BYc1mF65g1JNr44BWefhnhKdPLDWbxcdUoKxcoDeZMWs
+
+=== A) recent program transactions (limit 25) ===
+  scan failed: fetch failed
+default pool decode failed, falling back to bytes 8..40: failed to get info about account Gi94NEwd5F85wWZCy2REdCn3kpQbKpiewvsBCLAGqEpZ: Error: RPC request timed out after 15000ms
+
+=== B) simulate createPool [fresh random keypair (control)] authority=7azzPwhSKCusxWrysp2qQUhnA6NzjXMeusAtiMJBCtZb ===

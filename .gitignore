@@ -1,0 +1,40 @@
+# v0 sandbox internal files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+.snowflake/
+.v0-trash/
+.vercel/
+
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+
+# Anchor / Solana build artifacts (includes program keypairs — never commit)
+target/
+.anchor/
+**/*.rs.bk
+
+# Ephemeral deploy artifacts and keypairs
+deploy-buffer-keypair*.json
+recovered-buffer-keypair.json
+*.backup
+
+# Local logs
+*.log
+
+# Local diagnostic scratch/output files (captured RPC or CLI output; may contain
+# credentials or key material and must never be staged or committed)
+_*.txt
+_*.json
+*-out.txt
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Next.js generated types
+next-env.d.ts

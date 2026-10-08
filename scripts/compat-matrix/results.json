@@ -1,0 +1,546 @@
+{
+  "A": {
+    "id": "A",
+    "cells": {
+      "tokenProgramDetected": {
+        "status": "PASS",
+        "detail": "staking=legacy-SPL reward=legacy-SPL"
+      },
+      "createPool": {
+        "status": "PASS",
+        "detail": "263 bytes, pool_id=10"
+      },
+      "poolPda": {
+        "status": "PASS",
+        "detail": "CtKpoXp8fZhaHUt3iFbG6qdjmBnTEvTBmDVjyQK743rj id=10"
+      },
+      "stakingVaultPda": {
+        "status": "PASS",
+        "detail": "8UL7cuc8GFuKr7S6q9956JdXQMmjbByEUasZSAsQ8qS7"
+      },
+      "rewardVaultPda": {
+        "status": "PASS",
+        "detail": "5NaDQ3YhLjbbTBDZsHkM7mDUH4sLttoZRDviDEm3L3Ag"
+      },
+      "stakingMintBound": {
+        "status": "PASS",
+        "detail": "HgRDD5NkSFsco6q3QTpfLw3hs2n96c9Vxb2KgQwPX9NA"
+      },
+      "rewardMintBound": {
+        "status": "PASS",
+        "detail": "4v6togsrQbZF9op5RuDRbJk77YZi7yUaqSBfBp84Enqy"
+      },
+      "shortLockup": {
+        "status": "PASS",
+        "detail": "lock_duration=60s"
+      },
+      "stakingVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=CtKpoXp8fZhaHUt3iFbG6qdjmBnTEvTBmDVjyQK743rj"
+      },
+      "rewardVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=CtKpoXp8fZhaHUt3iFbG6qdjmBnTEvTBmDVjyQK743rj"
+      },
+      "stakingVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=HgRDD5NkSFsco6q3QTpfLw3hs2n96c9Vxb2KgQwPX9NA"
+      },
+      "rewardVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=4v6togsrQbZF9op5RuDRbJk77YZi7yUaqSBfBp84Enqy"
+      },
+      "stakingVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "legacy-SPL expected=legacy-SPL"
+      },
+      "rewardVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "legacy-SPL expected=legacy-SPL"
+      },
+      "fundRewards": {
+        "status": "PASS",
+        "detail": "100000000 -> 500100000000 (+500000000000)"
+      },
+      "totalStaked": {
+        "status": "PASS",
+        "detail": "pool.total_staked=1000000"
+      },
+      "stake": {
+        "status": "PASS",
+        "detail": "position amount=1000000 (legacy-SPL staking vault)"
+      },
+      "stakingVaultBalance": {
+        "status": "FAIL",
+        "detail": "1000000 -> 1000000 (expected +1000000)"
+      },
+      "claim": {
+        "status": "PASS",
+        "detail": "reward balance +1438000000 units"
+      },
+      "vaultConservation": {
+        "status": "PASS",
+        "detail": "user +1438000000 == vault -1438000000"
+      },
+      "accruedReset": {
+        "status": "PASS",
+        "detail": "accrued=0 total_claimed=1438000000"
+      },
+      "unstake": {
+        "status": "PASS",
+        "detail": "position amount=0 (position closed)"
+      },
+      "totalStakedCleared": {
+        "status": "PASS",
+        "detail": "pool.total_staked=0"
+      },
+      "stakingReturned": {
+        "status": "PASS",
+        "detail": "vault 1000000 -> 0; user ATA now 1000000000000"
+      }
+    },
+    "sigs": {
+      "createPool": "64yP7w6qvCxCGb569JEoVcd2Z3szQzfyupQVTyncE7HiQDUvhNXpsz9FoDZdeA4aJoq2pUC1T2zxnTgRRESarmYw",
+      "fundRewards": "5HzqMgQKAvUTAPsj5PuriXR8EsQg5x1r8TycVxZAikjJ87wf3AF2z6NAYdtm2Y4KVw6ufmmXLYN8vBYSAxfdCgRf",
+      "stake": "2aDiHv2jHded39sTPERTANtcfDm9EwhiCKWLBoRQBiWUKSUw9kq6zDV5t87h1GzxNMebXnjyBysCUnZgzKo4fzr9",
+      "claim": "4RxvhGMD1TyuLuB1pmELLWcqheSJdU5cPSJc3VwG5DWVdoXjXKagqZFvJ6ddBy6stzie4jgjHaAtestAm5Ay3Gx8",
+      "unstake": "5KEHQaCvMV3R5G45S7YhTGEQwAd6dbhvk3gjZDxYCAVTF8m5j16LWYjs2AU4DGRbrvPxaPizm3eYNffWBZ29NPt2"
+    },
+    "notes": [],
+    "addresses": {
+      "pool": "CtKpoXp8fZhaHUt3iFbG6qdjmBnTEvTBmDVjyQK743rj",
+      "stakingVault": "8UL7cuc8GFuKr7S6q9956JdXQMmjbByEUasZSAsQ8qS7",
+      "rewardVault": "5NaDQ3YhLjbbTBDZsHkM7mDUH4sLttoZRDviDEm3L3Ag",
+      "stakingMint": "HgRDD5NkSFsco6q3QTpfLw3hs2n96c9Vxb2KgQwPX9NA",
+      "rewardMint": "4v6togsrQbZF9op5RuDRbJk77YZi7yUaqSBfBp84Enqy",
+      "stakingProg": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "rewardProg": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+    },
+    "finalPosition": {
+      "address": "63ba8tYo84d9xakmFyJWHeUXyP82fCwVmVSc6S4tqbiQ",
+      "owner": "2pGydyPFaZQJ8ZbGCBBim4w6fBv5qEb3h8eByaabo5ij",
+      "pool": "CtKpoXp8fZhaHUt3iFbG6qdjmBnTEvTBmDVjyQK743rj",
+      "amount": "0",
+      "lockedUntil": 1791036252,
+      "rewardDebt": "17707218176945422336",
+      "accruedRewards": "37000000",
+      "totalClaimed": "1438000000",
+      "bump": 255,
+      "nftBoostBps": 0,
+      "bytes": 123
+    },
+    "finalPool": {
+      "totalStaked": "0",
+      "stakingVault": "0",
+      "rewardVault": "498662000000"
+    }
+  },
+  "B": {
+    "id": "B",
+    "cells": {
+      "tokenProgramDetected": {
+        "status": "PASS",
+        "detail": "staking=Token-2022 reward=legacy-SPL"
+      },
+      "createPool": {
+        "status": "PASS",
+        "detail": "263 bytes, pool_id=11"
+      },
+      "poolPda": {
+        "status": "PASS",
+        "detail": "GjcxHjNTrUYBHGiPdaY9eXgEhMgqz9VpEByfVFqrkEUF id=11"
+      },
+      "stakingVaultPda": {
+        "status": "PASS",
+        "detail": "CHCXn6iCN25euijtmWELVsMPC9YF7yJkve6dCTQF6Yo9"
+      },
+      "rewardVaultPda": {
+        "status": "PASS",
+        "detail": "DToZvUHQ9aeywcsBHES7H19rSwpNkrigBn85aTHPYc38"
+      },
+      "stakingMintBound": {
+        "status": "PASS",
+        "detail": "7KNkAA6bk4BgwrcYJx33LxFqSkP1CLT5m1zW2vFBcHdL"
+      },
+      "rewardMintBound": {
+        "status": "PASS",
+        "detail": "Bz2JE45heu9i7KLyTKk4jLib7F7wStbmKeuvwCyFjwhT"
+      },
+      "shortLockup": {
+        "status": "PASS",
+        "detail": "lock_duration=60s"
+      },
+      "stakingVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=GjcxHjNTrUYBHGiPdaY9eXgEhMgqz9VpEByfVFqrkEUF"
+      },
+      "rewardVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=GjcxHjNTrUYBHGiPdaY9eXgEhMgqz9VpEByfVFqrkEUF"
+      },
+      "stakingVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=7KNkAA6bk4BgwrcYJx33LxFqSkP1CLT5m1zW2vFBcHdL"
+      },
+      "rewardVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=Bz2JE45heu9i7KLyTKk4jLib7F7wStbmKeuvwCyFjwhT"
+      },
+      "stakingVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "Token-2022 expected=Token-2022"
+      },
+      "rewardVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "legacy-SPL expected=legacy-SPL"
+      },
+      "fundRewards": {
+        "status": "PASS",
+        "detail": "100000000 -> 500100000000 (+500000000000)"
+      },
+      "totalStaked": {
+        "status": "PASS",
+        "detail": "pool.total_staked=1000000"
+      },
+      "stake": {
+        "status": "PASS",
+        "detail": "position amount=1000000 (Token-2022 staking vault)"
+      },
+      "stakingVaultBalance": {
+        "status": "FAIL",
+        "detail": "1000000 -> 1000000 (expected +1000000)"
+      },
+      "claim": {
+        "status": "PASS",
+        "detail": "reward balance +1525000000 units"
+      },
+      "vaultConservation": {
+        "status": "PASS",
+        "detail": "user +1525000000 == vault -1525000000"
+      },
+      "accruedReset": {
+        "status": "PASS",
+        "detail": "accrued=0 total_claimed=1525000000"
+      },
+      "unstake": {
+        "status": "PASS",
+        "detail": "position amount=0 (position closed)"
+      },
+      "totalStakedCleared": {
+        "status": "PASS",
+        "detail": "pool.total_staked=0"
+      },
+      "stakingReturned": {
+        "status": "PASS",
+        "detail": "vault 1000000 -> 0; user ATA now 1000000000000"
+      }
+    },
+    "sigs": {
+      "createPool": "3vVWLM69URoo8x2qrvayQq5SFCoArhGEMVvJjJXW2D5huNxnPcYY7DRZjftEDSsrbqJNYrUnTp9za7b5KSJNjpMg",
+      "fundRewards": "31TmFTHYKTofrcxERor8J8S98VmrSkyF68eucTwyHfZCEKCtMCfHpDExaF7JBmmkhAjUyHuNuBPviQQwWAShCCkd",
+      "stake": "43P841k6LoJmQdhrU1GGppDzLn5o14fSarTZw1YKKRBcfqcsDYxfWoazYeAdvCwVV2awZ8aVMcoxx4osy73rXdf",
+      "claim": "5GUb5E3kjids8BEpzYFhr8SHsmq5YiFTKY9r7gRWeWsRw2YNhGJqHoPiHpa7obRyog3f2YtLd9uixPqedijX4QNq",
+      "unstake": "1fgpe7nCPVdJmhDcUSN3xUg3wR45uu6iac64pEZTf7SFmKByw3s8MkEHs81PaDk4y8ADUNvV6hg1ygUbeAvP8G8"
+    },
+    "notes": [],
+    "addresses": {
+      "pool": "GjcxHjNTrUYBHGiPdaY9eXgEhMgqz9VpEByfVFqrkEUF",
+      "stakingVault": "CHCXn6iCN25euijtmWELVsMPC9YF7yJkve6dCTQF6Yo9",
+      "rewardVault": "DToZvUHQ9aeywcsBHES7H19rSwpNkrigBn85aTHPYc38",
+      "stakingMint": "7KNkAA6bk4BgwrcYJx33LxFqSkP1CLT5m1zW2vFBcHdL",
+      "rewardMint": "Bz2JE45heu9i7KLyTKk4jLib7F7wStbmKeuvwCyFjwhT",
+      "stakingProg": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "rewardProg": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+    },
+    "finalPosition": {
+      "address": "CmcVUWYG1kif1Rz7evdzzpy9Yc22M1ZvqP5XgFrLH2Jy",
+      "owner": "2pGydyPFaZQJ8ZbGCBBim4w6fBv5qEb3h8eByaabo5ij",
+      "pool": "GjcxHjNTrUYBHGiPdaY9eXgEhMgqz9VpEByfVFqrkEUF",
+      "amount": "0",
+      "lockedUntil": 1791036265,
+      "rewardDebt": "13473497808397664256",
+      "accruedRewards": "38000000",
+      "totalClaimed": "1525000000",
+      "bump": 255,
+      "nftBoostBps": 0,
+      "bytes": 123
+    },
+    "finalPool": {
+      "totalStaked": "0",
+      "stakingVault": "0",
+      "rewardVault": "498575000000"
+    }
+  },
+  "C": {
+    "id": "C",
+    "cells": {
+      "tokenProgramDetected": {
+        "status": "PASS",
+        "detail": "staking=legacy-SPL reward=Token-2022"
+      },
+      "createPool": {
+        "status": "PASS",
+        "detail": "263 bytes, pool_id=12"
+      },
+      "poolPda": {
+        "status": "PASS",
+        "detail": "EGqni3UpRtfSUiiT1A8AoVBj3a1CGTVrzRj1tK3dwZ3A id=12"
+      },
+      "stakingVaultPda": {
+        "status": "PASS",
+        "detail": "Fc4WXgkZb3NY1xq6LVZanRJtvsQwLwuyxbMabGvmYM5i"
+      },
+      "rewardVaultPda": {
+        "status": "PASS",
+        "detail": "7AXuZEbQ1EkktuNfBh4ADmeedQB885M1s2YjTypXPzd2"
+      },
+      "stakingMintBound": {
+        "status": "PASS",
+        "detail": "7tRH1YZQ3tPizKdwD3yoSsjjuHKab17id9ZfAUSHuM9S"
+      },
+      "rewardMintBound": {
+        "status": "PASS",
+        "detail": "FJUhUAnHMU3ANAMkTRKphSEY5W5bmcobD3jiA1oqyavL"
+      },
+      "shortLockup": {
+        "status": "PASS",
+        "detail": "lock_duration=60s"
+      },
+      "stakingVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=EGqni3UpRtfSUiiT1A8AoVBj3a1CGTVrzRj1tK3dwZ3A"
+      },
+      "rewardVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=EGqni3UpRtfSUiiT1A8AoVBj3a1CGTVrzRj1tK3dwZ3A"
+      },
+      "stakingVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=7tRH1YZQ3tPizKdwD3yoSsjjuHKab17id9ZfAUSHuM9S"
+      },
+      "rewardVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=FJUhUAnHMU3ANAMkTRKphSEY5W5bmcobD3jiA1oqyavL"
+      },
+      "stakingVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "legacy-SPL expected=legacy-SPL"
+      },
+      "rewardVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "Token-2022 expected=Token-2022"
+      },
+      "fundRewards": {
+        "status": "PASS",
+        "detail": "100000000 -> 500100000000 (+500000000000)"
+      },
+      "totalStaked": {
+        "status": "PASS",
+        "detail": "pool.total_staked=1000000"
+      },
+      "stake": {
+        "status": "PASS",
+        "detail": "position amount=1000000 (legacy-SPL staking vault)"
+      },
+      "stakingVaultBalance": {
+        "status": "FAIL",
+        "detail": "1000000 -> 1000000 (expected +1000000)"
+      },
+      "claim": {
+        "status": "PASS",
+        "detail": "reward balance +1617000000 units"
+      },
+      "vaultConservation": {
+        "status": "PASS",
+        "detail": "user +1617000000 == vault -1617000000"
+      },
+      "accruedReset": {
+        "status": "PASS",
+        "detail": "accrued=0 total_claimed=1617000000"
+      },
+      "unstake": {
+        "status": "PASS",
+        "detail": "position amount=0 (position closed)"
+      },
+      "totalStakedCleared": {
+        "status": "PASS",
+        "detail": "pool.total_staked=0"
+      },
+      "stakingReturned": {
+        "status": "PASS",
+        "detail": "vault 1000000 -> 0; user ATA now 1000000000000"
+      }
+    },
+    "sigs": {
+      "createPool": "3TwdcNUMxCQHWJ3UpDZSA2J8GnocVW5d7xZxpRYvhthzCRLPixwwJDgpWZS4RFNvEqZ1Xn84Q3ck7ChkFoS9Rg1f",
+      "fundRewards": "3qWTHKJ6tSt3E9VrhoVwyedj1S546i71g1gfvfa1rStKvTJaQrioDahQp7vT8wavVmKczjEEzQSUJv6oRbXNaZ91",
+      "stake": "3jgkR6yyenvAhuEPcGy4YorQfxUjKCwy7u69AH2fjhXqvmJCogPWh9XasEwUBc36WDaNpL4Z6dyUChpXju1buZ6m",
+      "claim": "Ra4srX3Lprpc2k3rmwVcvSmQ2tbwvNBDgG81AVPU1Qqn4QijVbqMiu3hUEARRsgUXd3VL47R4udVYhgZXSWD7Qb",
+      "unstake": "2cZubtV6KNuGUAuRg9yJjtGPsPtEqJTQtUL24VCe1whrac56H5vWTEF7YFJonDa8qepmotdHoaURMhZZN9jt28TP"
+    },
+    "notes": [],
+    "addresses": {
+      "pool": "EGqni3UpRtfSUiiT1A8AoVBj3a1CGTVrzRj1tK3dwZ3A",
+      "stakingVault": "Fc4WXgkZb3NY1xq6LVZanRJtvsQwLwuyxbMabGvmYM5i",
+      "rewardVault": "7AXuZEbQ1EkktuNfBh4ADmeedQB885M1s2YjTypXPzd2",
+      "stakingMint": "7tRH1YZQ3tPizKdwD3yoSsjjuHKab17id9ZfAUSHuM9S",
+      "rewardMint": "FJUhUAnHMU3ANAMkTRKphSEY5W5bmcobD3jiA1oqyavL",
+      "stakingProg": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "rewardProg": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+    },
+    "finalPosition": {
+      "address": "DnKdPkYGKzwX5Tj2UD7b8a9FxxFQwXgKeUiVkzEogBC4",
+      "owner": "2pGydyPFaZQJ8ZbGCBBim4w6fBv5qEb3h8eByaabo5ij",
+      "pool": "EGqni3UpRtfSUiiT1A8AoVBj3a1CGTVrzRj1tK3dwZ3A",
+      "amount": "0",
+      "lockedUntil": 1791036274,
+      "rewardDebt": "11239777439849906176",
+      "accruedRewards": "36000000",
+      "totalClaimed": "1617000000",
+      "bump": 252,
+      "nftBoostBps": 0,
+      "bytes": 123
+    },
+    "finalPool": {
+      "totalStaked": "0",
+      "stakingVault": "0",
+      "rewardVault": "498483000000"
+    }
+  },
+  "D": {
+    "id": "D",
+    "cells": {
+      "tokenProgramDetected": {
+        "status": "PASS",
+        "detail": "staking=Token-2022 reward=Token-2022"
+      },
+      "createPool": {
+        "status": "PASS",
+        "detail": "263 bytes, pool_id=13"
+      },
+      "poolPda": {
+        "status": "PASS",
+        "detail": "GCyWuXCoiub1dvvCJovS6s8Q47wSk4EByof9KNvbPuj6 id=13"
+      },
+      "stakingVaultPda": {
+        "status": "PASS",
+        "detail": "7K8DUi1ojEWYxUDaHsYiUgJd75PRDh4YKbCVAqcRvRNF"
+      },
+      "rewardVaultPda": {
+        "status": "PASS",
+        "detail": "7xe9rh4SpHzywJAFca4sqi7taZLwigczMiBCcHNwq2uv"
+      },
+      "stakingMintBound": {
+        "status": "PASS",
+        "detail": "3JYtPr8GXW5eAgf7TJbSqm3yiXwPJ3Tqb3Ey7Kp61REr"
+      },
+      "rewardMintBound": {
+        "status": "PASS",
+        "detail": "CM1npRvua244yRjiHyWsyfNvTsew5WwP8a218dqANQTY"
+      },
+      "shortLockup": {
+        "status": "PASS",
+        "detail": "lock_duration=60s"
+      },
+      "stakingVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=GCyWuXCoiub1dvvCJovS6s8Q47wSk4EByof9KNvbPuj6"
+      },
+      "rewardVaultAuthority": {
+        "status": "PASS",
+        "detail": "authority=GCyWuXCoiub1dvvCJovS6s8Q47wSk4EByof9KNvbPuj6"
+      },
+      "stakingVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=3JYtPr8GXW5eAgf7TJbSqm3yiXwPJ3Tqb3Ey7Kp61REr"
+      },
+      "rewardVaultMint": {
+        "status": "PASS",
+        "detail": "vault mint=CM1npRvua244yRjiHyWsyfNvTsew5WwP8a218dqANQTY"
+      },
+      "stakingVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "Token-2022 expected=Token-2022"
+      },
+      "rewardVaultTokenProgram": {
+        "status": "PASS",
+        "detail": "Token-2022 expected=Token-2022"
+      },
+      "fundRewards": {
+        "status": "PASS",
+        "detail": "100000000 -> 500100000000 (+500000000000)"
+      },
+      "totalStaked": {
+        "status": "PASS",
+        "detail": "pool.total_staked=1000000"
+      },
+      "stake": {
+        "status": "PASS",
+        "detail": "position amount=1000000 (Token-2022 staking vault)"
+      },
+      "stakingVaultBalance": {
+        "status": "FAIL",
+        "detail": "1000000 -> 1000000 (expected +1000000)"
+      },
+      "claim": {
+        "status": "PASS",
+        "detail": "reward balance +1704000000 units"
+      },
+      "vaultConservation": {
+        "status": "PASS",
+        "detail": "user +1704000000 == vault -1704000000"
+      },
+      "accruedReset": {
+        "status": "PASS",
+        "detail": "accrued=0 total_claimed=1704000000"
+      },
+      "unstake": {
+        "status": "PASS",
+        "detail": "position amount=0 (position closed)"
+      },
+      "totalStakedCleared": {
+        "status": "PASS",
+        "detail": "pool.total_staked=0"
+      },
+      "stakingReturned": {
+        "status": "PASS",
+        "detail": "vault 1000000 -> 0; user ATA now 1000000000000"
+      }
+    },
+    "sigs": {
+      "createPool": "6349Hig9QpU8ScFtNvCWSPycdWa65sEs1iPs5nBJFFkCcXFPiDcbHsxrWV9BC4XHPsaHebU9KWG2tRZr86YxcG4y",
+      "fundRewards": "48JJt3hqrZLAGSLKv89aPz5ankDaFPUaH1Y9gB7Qy7M4jQCYrDiPTiRafrjeBrZuJAPkrs1V5wKUKUMJX3J5pbxE",
+      "stake": "3d1CLxz3g1sK5DJcm5MnvRxDfmroqRp4YLH5BZb3faieW4wcKb8PhcgsAuDFAvwjjmneVyz85d7Q4hVMV4oSopKU",
+      "claim": "5q58bsAgqVX7XmmpLmm3NUrnLdDiNCywdYFK5cWmw9HZUS4tYoMkADKPjXKcn7SiEThvpw5CVuL44reF5EF4qnqY",
+      "unstake": "5Fnq6m82LWCAT3rmhVSP15MPNfRs7gEQtKJpoZVSZayMW2BLpBvpS3m8Tw98xWzG75LJ9Jgm5sBWdP1AGK4sXRcF"
+    },
+    "notes": [],
+    "addresses": {
+      "pool": "GCyWuXCoiub1dvvCJovS6s8Q47wSk4EByof9KNvbPuj6",
+      "stakingVault": "7K8DUi1ojEWYxUDaHsYiUgJd75PRDh4YKbCVAqcRvRNF",
+      "rewardVault": "7xe9rh4SpHzywJAFca4sqi7taZLwigczMiBCcHNwq2uv",
+      "stakingMint": "3JYtPr8GXW5eAgf7TJbSqm3yiXwPJ3Tqb3Ey7Kp61REr",
+      "rewardMint": "CM1npRvua244yRjiHyWsyfNvTsew5WwP8a218dqANQTY",
+      "stakingProg": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+      "rewardProg": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+    },
+    "finalPosition": {
+      "address": "9Vz21Tr91GSg8gz9vmG7kevSUN97rEGzYEH2x8Qos1Mg",
+      "owner": "2pGydyPFaZQJ8ZbGCBBim4w6fBv5qEb3h8eByaabo5ij",
+      "pool": "GCyWuXCoiub1dvvCJovS6s8Q47wSk4EByof9KNvbPuj6",
+      "amount": "0",
+      "lockedUntil": 1791036286,
+      "rewardDebt": "6006057071302148096",
+      "accruedRewards": "36000000",
+      "totalClaimed": "1704000000",
+      "bump": 255,
+      "nftBoostBps": 0,
+      "bytes": 123
+    },
+    "finalPool": {
+      "totalStaked": "0",
+      "stakingVault": "0",
+      "rewardVault": "498396000000"
+    }
+  }
+}

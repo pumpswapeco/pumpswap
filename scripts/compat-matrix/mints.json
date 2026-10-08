@@ -1,0 +1,82 @@
+{
+  "A-stake": {
+    "mint": "HgRDD5NkSFsco6q3QTpfLw3hs2n96c9Vxb2KgQwPX9NA",
+    "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "kind": "legacy-SPL",
+    "decimals": 6,
+    "sigCreateMint": "created in an interrupted run",
+    "done": true,
+    "ata": "NVH1549nZ7eFFSVNNmZzVPSACeZG7JX2xwRZMS4Pqjt",
+    "sigMintTo": "3AYUkD9DdnuNgubrgFjvJsGHoQfYx9NGGtGjjQBkTTdwkZUQgkLrJ5Vw7g9nhBWFtiCR65ASMms6fd9aFasEhUHG"
+  },
+  "A-reward": {
+    "mint": "4v6togsrQbZF9op5RuDRbJk77YZi7yUaqSBfBp84Enqy",
+    "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "kind": "legacy-SPL",
+    "decimals": 6,
+    "sigCreateMint": "5Nh1MfooEh3VdoWnnHZCo3WtQtb1wWCbu9YZk7qn9GLBHBwx3VeSNR4VTyHUheZdN6KpMCP32mFMG2rauHwxDVP6",
+    "done": true,
+    "ata": "9pjQV3LxS75ZdxmVRi3fMNc9UjJoAdoPnuoWSs6FWHt8",
+    "sigMintTo": "2xCkRaf2pRc5Bji8MokMhvsr8CwhJPr4TPn8RAUXgp2mdR1VPLcMNS8j8usZTic5MiKE7VKc4CfHuinUP7mCk9C8"
+  },
+  "B-stake": {
+    "mint": "7KNkAA6bk4BgwrcYJx33LxFqSkP1CLT5m1zW2vFBcHdL",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "kind": "Token-2022",
+    "decimals": 6,
+    "sigCreateMint": "3Em8GuCMy2a5nSaDGDdj1DBVa98m7yQ5MnK5Td8c9idnjuwTcoeZRgQ2oPDb4G1HuzX7DTY1R5ChK9wQup9y6N9u",
+    "done": true,
+    "ata": "6VVLyjwUX4B6HwBLm8vJXYLE9inB8fRaiwU3kc7iD1qL",
+    "sigMintTo": "4frBvHiZ77hDCn6UVPy4S7UQPPSGzsc4rFwo9TP6CudWYQLswFFiRUszZqRhzgBjErdu5rwpbMUqL87MPpEd1i1b"
+  },
+  "B-reward": {
+    "mint": "Bz2JE45heu9i7KLyTKk4jLib7F7wStbmKeuvwCyFjwhT",
+    "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "kind": "legacy-SPL",
+    "decimals": 6,
+    "sigCreateMint": "5CEbb5LeS7Fs9Cuq2aEE1Ex1VpLvfbUicHM6GB5HjKoqZqmYa2eAcmhuaKynKxdmmWHjBDkP1jA35wXjaZgCkYsH",
+    "done": true,
+    "ata": "DzEDZwymTEZm3rarFdXqu7zWY6dELXC3VoLmHvBfkgmi",
+    "sigMintTo": "4c3DX7qKwmwPibhVVq8HfDzxAskCpWkPQNeG2onLDBtL3bD4SJgHtfyz9xsEuffajHDnLRjRZqyLwmQWTDzayw5X"
+  },
+  "C-stake": {
+    "mint": "7tRH1YZQ3tPizKdwD3yoSsjjuHKab17id9ZfAUSHuM9S",
+    "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "kind": "legacy-SPL",
+    "decimals": 6,
+    "sigCreateMint": "42AX9EUFniupztSdiEt9wAx64ZdGrv5AaaUuzMgJvAb9zjrLybuLYTRva8pxvcX65n6KbUeE1boxV6hWthnrD9QV",
+    "done": true,
+    "ata": "Uq7FrZLiaT51mpj8KC3Ymn2SMGn3bNQoUkcUnUAoZ2z",
+    "sigMintTo": "4qwdMSKgFRKZ83bVrbm3fGV8AvXd6mx5uU5FaATgLGV5oPX4swMiRYCBqwkdqT38Qjcafs6UKi2zsU9yc5VTkbq8"
+  },
+  "C-reward": {
+    "mint": "FJUhUAnHMU3ANAMkTRKphSEY5W5bmcobD3jiA1oqyavL",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "kind": "Token-2022",
+    "decimals": 6,
+    "sigCreateMint": "4YxwQDdNPe7DrXrBagC1Z1KgrSn1W4mmy7D9o1kKPNGGJ7WwsGWrU5e3JLoPSpsBeneY6XurBZm1QdHzGGjHLbfj",
+    "done": true,
+    "ata": "1YfUQFHh2pYNkX5gAeqTbxZj4Q1oGgKuGjdbunY9AXd",
+    "sigMintTo": "2sZUoJcVsEcXiTdp49MNnRRhrT9DtztbJ6VRzU6wWZ2a3qR8UcXazhcm3v3wL6GCDUr9fuD5W1VLo9a7SHZZXe8H"
+  },
+  "D-stake": {
+    "mint": "3JYtPr8GXW5eAgf7TJbSqm3yiXwPJ3Tqb3Ey7Kp61REr",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "kind": "Token-2022",
+    "decimals": 6,
+    "sigCreateMint": "4LnvHUffnG3gTWubZpc96aGXDKfD2sk5wRwUtLYf6h254iuub4aXfR6CzjAN8963UboyZpBW6ZtMgC1B7DXw7Sii",
+    "done": true,
+    "ata": "9mY9uWgZRLZ5oXskmw2LKPa2UphyefamkGwTjyamXryX",
+    "sigMintTo": "2G2G3RAPYDAf67qAh655SRaoTV3sHSZwUPiSmkcAvSN5RGooRKs635oQYxmrgh1TEJ5zZoyoJnHPLX6jrSg8h4yM"
+  },
+  "D-reward": {
+    "mint": "CM1npRvua244yRjiHyWsyfNvTsew5WwP8a218dqANQTY",
+    "tokenProgram": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "kind": "Token-2022",
+    "decimals": 6,
+    "sigCreateMint": "2VZQCX854iKgEmGLqaaSrEejMtHSxFwpYW7vsVJCha6SPC8bEHgLhEN9RayV26PnMcDewgdqib4ucmQoRmyW23yU",
+    "done": true,
+    "ata": "FiVy6U93Ls1As26dCPbzLXKuwZ4TxQvDuoGvQDmo4Dpm",
+    "sigMintTo": "Ptadrmf16V99FVwrQzNXyCfv12pAJUb79xtMMHEixBiTNFwS3QuHA4gbguqpQqR5H7kp3j2bW1mLYcxztuQUNfE"
+  }
+}

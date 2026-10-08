@@ -1,0 +1,21 @@
+[package]
+name = "pumpswap-staking"
+version = "0.1.0"
+description = "No-code Solana staking infrastructure for project founders"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "pumpswap_staking"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.31.1", features = ["metadata", "token_2022"] }

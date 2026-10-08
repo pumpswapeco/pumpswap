@@ -1,0 +1,25 @@
+[workspace]
+members = [
+    "programs/*"
+]
+resolver = "2"
+
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "1.18.26"
+
+[features]
+resolution = true
+skip-lint = false
+
+# Deployed program id (must match `declare_id!` in
+# programs/pumpswap-staking/src/lib.rs, lib/solana/idl/pumpswap_staking.json and
+# NEXT_PUBLIC_STAKING_PROGRAM_ID). Declared here so `anchor` resolves the program
+# for the devnet provider below instead of failing with an undeclared program.
+[programs.devnet]
+pumpswap_staking = "BYc1mF65g1JNr44BWefhnhKdPLDWbxcdUoKxcoDeZMWs"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
