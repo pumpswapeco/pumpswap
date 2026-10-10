@@ -15,6 +15,7 @@ import { useRecentActivity } from "@/lib/solana/use-recent-activity"
 import { usePoolOptional } from "@/lib/pool-context"
 import { buildActivityRows, formatTokenUnitAmount } from "@/lib/solana/activity-display"
 import { baseUnitsToTokens, formatLockDurationSeconds } from "@/lib/solana/display"
+import { computeAverageEstimatedApr, type AprExclusionReason } from "@/lib/solana/rewards-calc"
 import { shortenAddress } from "@/lib/solana/format"
 
 const quickActions = [
@@ -23,6 +24,23 @@ const quickActions = [
   { href: "/pools", label: "Manage Pools", icon: Layers },
   { href: "/stake", label: "Staking Portal", icon: ExternalLink },
 ]
+
+/** Short, truthful explanation for each reason a pool is excluded from the APR average. */
+const EXCLUSION_REASON_LABELS: Record<AprExclusionReason, string> = {
+  "cross-token": "cross-token (no price feed)",
+  "unknown-decimals": "unknown decimals",
+  "zero-stake": "no stake yet",
+  "zero-emission": "no emission",
+}
+
+/** e.g. "2 cross-token (no price feed), 1 no stake yet" - the "why" behind the excluded count. */
+function describeExcludedReasons(
+  reasons: { reason: AprExclusionReason; count: number }[],
+): string {
+  return reasons
+    .map((r) => `${r.count} ${EXCLUSION_REASON_LABELS[r.reason]}`)
+    .join(", ")
+}
 
 export default function DashboardPage() {
   const stats = usePoolStats()
@@ -46,51 +64,40 @@ export default function DashboardPage() {
       ? "Staker totals unavailable"
       : stats.totalStakers.toLocaleString()
 
-  const apyDisplay = stats.loading
-  ? "…"
-  : (() => {
-      const activePools = stats.pools.filter(
-        (p) =>
-          BigInt(p.totalStaked.toString()) > BigInt(0) &&
-          BigInt(p.rewardRatePerSecond.toString()) > BigInt(0),
-      )
+  // Average Estimated APR = ARITHMETIC MEAN of every ELIGIBLE pool's current
+  // estimated APR, computed by the shared pure helper (lib/solana/rewards-calc).
+  // Each pool uses its OWN current on-chain emission + actual total stake +
+  // exact mint decimals. Cross-token pools are excluded (no price feed), as
+  // are pools with unknown decimals, no stake, or no emission. The Target APR
+  // card's reference stake / preview APR is NOT used here. We surface exactly
+  // how many pools fed the number and why any were excluded.
+  const apr = computeAverageEstimatedApr(
+    stats.pools.map((p) => ({
+      sameMint: p.stakingMint.equals(p.rewardMint),
+      stakingDecimals: p.stakingMintDecimals,
+      rewardDecimals: p.rewardMintDecimals,
+      totalStakedBase: BigInt(p.totalStaked.toString()),
+      emissionPerSecond: BigInt(p.rewardRatePerSecond.toString()),
+    })),
+  )
 
-      if (activePools.length === 0) return "—"
+  const aprDisplay = stats.loading
+    ? "…"
+    : apr.averageAprPercent === null
+      ? "—"
+      : `${apr.averageAprPercent.toFixed(2)}%`
 
-      const apys = activePools
-        .map((p) => {
-          const totalStakedRaw = BigInt(p.totalStaked.toString())
-          const rewardRateRaw = BigInt(p.rewardRatePerSecond.toString())
-
-          const annualRewardTokens =
-            (Number(rewardRateRaw) / Math.pow(10, p.rewardDecimals)) *
-            (365 * 24 * 60 * 60)
-
-          const totalStakedTokens =
-            Number(totalStakedRaw) / Math.pow(10, p.stakingDecimals)
-
-          if (
-            !Number.isFinite(annualRewardTokens) ||
-            !Number.isFinite(totalStakedTokens) ||
-            totalStakedTokens <= 0
-          ) {
-            return null
-          }
-
-          return (annualRewardTokens / totalStakedTokens) * 100
-        })
-        .filter(
-          (value): value is number =>
-            value !== null && Number.isFinite(value),
-        )
-
-      if (apys.length === 0) return "—"
-
-      const averageApy =
-        apys.reduce((sum, value) => sum + value, 0) / apys.length
-
-      return `${averageApy.toFixed(2)}%`
-    })()
+  const aprDelta = stats.loading
+    ? "Reading on-chain pools…"
+    : apr.includedCount === 0
+      ? apr.excludedCount === 0
+        ? "No on-chain pools yet"
+        : `No eligible pools · ${apr.excludedCount} excluded: ${describeExcludedReasons(apr.excludedReasons)}`
+      : `Mean of ${apr.includedCount} eligible pool${apr.includedCount === 1 ? "" : "s"}` +
+        (apr.excludedCount > 0
+          ? ` · ${apr.excludedCount} excluded: ${describeExcludedReasons(apr.excludedReasons)}`
+          : " · none excluded") +
+        " · non-compounding estimate, not guaranteed"
 
   const rewardsValue = rewards.loading
     ? "…"
@@ -135,12 +142,12 @@ export default function DashboardPage() {
             icon={Users}
           />
           <MetricCard
-          label="Current APY"
-          value={apyDisplay}
-          delta="Based on current pool emission"
-          deltaTone="neutral"
-          icon={Percent}
-/>
+            label="Average Estimated APR"
+            value={aprDisplay}
+            delta={aprDelta}
+            deltaTone="neutral"
+            icon={Percent}
+          />
           <MetricCard
             label="Pending Rewards"
             value={rewardsValue}

@@ -52,6 +52,8 @@ export {
   createPool,
   platformExists,
   derivePoolAddress,
+  setRewardRate,
+  isSetRewardRateSupported,
   type PoolAccount,
   type UserPositionAccount,
 } from '@/lib/solana/ops'

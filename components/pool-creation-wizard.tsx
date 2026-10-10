@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Check,
   ChevronDown,
@@ -28,12 +28,24 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { createPool, setPoolBoost } from "@/lib/solana/ops"
+import { createPool, ensureAta, fetchTokenAccountBalance, setPoolBoost } from "@/lib/solana/ops"
 import { invalidatePoolStats } from "@/lib/solana/use-pool-stats"
 import { useStakingProgram } from "@/lib/solana/use-staking-program"
 import { getUserFacingTxError } from "@/lib/solana/errors"
 import { shortenAddress, tryParsePublicKey } from "@/lib/solana/format"
-import { formatLockDurationSeconds, stakingUrlForPool } from "@/lib/solana/display"
+import {
+  baseUnitsToTokens,
+  formatLockDurationSeconds,
+  formatRewardEmission,
+  parseAmountToBaseUnits,
+  stakingUrlForPool,
+} from "@/lib/solana/display"
+import { getMintDecimals } from "@/lib/solana/metadata"
+import {
+  emissionPerSecondForTargetApr,
+  formatApproxDuration,
+  validateRewardFunding,
+} from "@/lib/solana/rewards-calc"
 import { resolveMintTokenProgram } from "@/lib/solana/token"
 import { isTransientRpcError, withRpcRetry } from "@/lib/solana/transport"
 import { getConfiguredNetwork } from "@/lib/solana/network"
@@ -65,7 +77,7 @@ function multiplierToBoostBps(multiplier: number): number | null {
 
 export function PoolCreationWizard() {
   const { publicKey } = useWallet()
-  const { program, canTransact } = useStakingProgram()
+  const { program, readOnlyProgram, canTransact } = useStakingProgram()
 
   const [step, setStep] = useState<StepId>(0)
   const [deploying, setDeploying] = useState(false)
@@ -103,9 +115,18 @@ export function PoolCreationWizard() {
   // 0 = Flexible (no lock). Surfaced via preset buttons + a custom field.
   const [lockSeconds, setLockSeconds] = useState(0)
   const [customLockDays, setCustomLockDays] = useState("")
-  // Reward emission, entered as WHOLE reward tokens per day and converted to
-  // on-chain base units/second at deploy time using the reward mint decimals.
-  const [rewardPerDay, setRewardPerDay] = useState("")
+  // --- Owner-selected target APR + budget/duration sizing ------------------
+  // Target APR (%): the owner's chosen annual rate. The program does NOT
+  // compound rewards, so every figure derived from it is an estimated
+  // (non-compounding) APR - never an APY, never a guarantee.
+  const [targetApr, setTargetApr] = useState("")
+  // Reference (expected) total stake in whole staking tokens: the
+  // assumption the target-APR -> emission conversion is based on.
+  const [referenceStake, setReferenceStake] = useState("")
+  // Total reward tokens the owner plans to fund and the emission duration
+  // the budget must sustain (emission = budget / duration in budget mode).
+  const [rewardBudget, setRewardBudget] = useState("")
+  const [rewardDurationDays, setRewardDurationDays] = useState("30")
 
   // Dynamic, on-chain metadata detection for whichever mint is entered.
   // Separate state per token; the mint address remains the source of truth.
@@ -128,11 +149,185 @@ export function PoolCreationWizard() {
   ]
   const isPreset = LOCK_PRESETS.some((p) => p.seconds === lockSeconds)
 
-  const rewardPerDayNum = Number.parseFloat(rewardPerDay)
-  const rewardRateOk = rewardPerDay.trim() !== "" && Number.isFinite(rewardPerDayNum) && rewardPerDayNum > 0
+  // --- Target APR / emission sizing (see TARGET_APR.md) ---------------------
+  const stakingMintKey = tryParsePublicKey(stakingMint.trim())
+  const rewardMintKey = tryParsePublicKey(rewardMint.trim())
+  // Same mint => staking and reward tokens share one valuation, so raw token
+  // quantities are directly comparable and a target APR can be converted into
+  // an emission WITHOUT inventing a USD price. Different mints => no truthful
+  // conversion exists (there is no price feed), and we never pretend otherwise.
+  const sameMint = !!(stakingMintKey && rewardMintKey && stakingMintKey.equals(rewardMintKey))
+
+  // Exact decimals of both mints (classic SPL Token and Token-2022 alike);
+  // null while unknown - a guess must never enter APR math.
+  const [mintDecimals, setMintDecimals] = useState<{ staking: number | null; reward: number | null }>({
+    staking: null,
+    reward: null,
+  })
+  useEffect(() => {
+    let cancelled = false
+    const stakingKey = tryParsePublicKey(stakingMint.trim())
+    const rewardKey = tryParsePublicKey(rewardMint.trim())
+    if (!stakingKey || !rewardKey) {
+      setMintDecimals({ staking: null, reward: null })
+      return
+    }
+    void (async () => {
+      const connection = readOnlyProgram.provider.connection
+      const [staking, reward] = await Promise.all([
+        getMintDecimals(connection, stakingKey),
+        getMintDecimals(connection, rewardKey),
+      ])
+      if (!cancelled) setMintDecimals({ staking, reward })
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [readOnlyProgram, stakingMint, rewardMint])
+
+  // Available reward funding: the CONNECTED wallet's reward-mint balance.
+  // null = not reliably known (disconnected or read failed) - never faked.
+  const [availableRewardBase, setAvailableRewardBase] = useState<bigint | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const rewardKey = tryParsePublicKey(rewardMint.trim())
+    if (!program || !publicKey || !rewardKey) {
+      setAvailableRewardBase(null)
+      return
+    }
+    void (async () => {
+      try {
+        const { address, needsCreation } = await ensureAta(program, rewardKey, publicKey)
+        const balance = needsCreation ? BigInt(0) : await fetchTokenAccountBalance(program, address)
+        if (!cancelled) setAvailableRewardBase(balance)
+      } catch {
+        // Read failed -> UNKNOWN (null), never a fabricated 0.
+        if (!cancelled) setAvailableRewardBase(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [program, publicKey, rewardMint])
+
+  const aprNum = Number.parseFloat(targetApr)
+  const referenceStakeNum = Number.parseFloat(referenceStake)
+  const durationDaysNum = Number.parseFloat(rewardDurationDays)
+  const budgetNum = Number.parseFloat(rewardBudget)
+
+  const durationOk = Number.isFinite(durationDaysNum) && durationDaysNum > 0
+  const durationSeconds = durationOk ? BigInt(Math.max(1, Math.round(durationDaysNum * 86_400))) : null
+
+  const aprFieldsTouched = targetApr.trim() !== "" || referenceStake.trim() !== ""
+  const aprInputsValid =
+    targetApr.trim() !== "" &&
+    referenceStake.trim() !== "" &&
+    Number.isFinite(aprNum) &&
+    aprNum > 0 &&
+    Number.isFinite(referenceStakeNum) &&
+    referenceStakeNum > 0
+  // The APR conversion is only possible with one shared valuation AND known
+  // decimals; otherwise the owner's APR is intent only (see funding panel).
+  const aprConversionAvailable =
+    sameMint && mintDecimals.staking !== null && mintDecimals.reward !== null
+  const aprMode = aprInputsValid && durationOk && aprConversionAvailable
+
+  const budgetOk = rewardBudget.trim() !== "" && Number.isFinite(budgetNum) && budgetNum > 0
+  const budgetMode = budgetOk && durationSeconds !== null
 
   const detailsValid = name.trim().length > 2 && stakingMint.trim().length > 30
-  const rewardValid = rewardMint.trim().length > 30 && rewardRateOk
+  const rewardValid =
+    rewardMint.trim().length > 30 && durationSeconds !== null && (aprMode || budgetMode)
+
+  // Emission that will be written on-chain as `reward_rate_per_second`
+  // (reward-mint base units per second). null = not computable (yet).
+  const emissionPerSecondPreview: bigint | null = (() => {
+    if (durationSeconds === null) return null
+    if (aprMode) {
+      if (mintDecimals.staking === null || mintDecimals.reward === null) return null
+      const stakeBase = parseAmountToBaseUnits(referenceStake, mintDecimals.staking)
+      if (!stakeBase) return null
+      return emissionPerSecondForTargetApr({
+        aprPercent: aprNum,
+        referenceStakeBase: BigInt(stakeBase.toString()),
+        stakingDecimals: mintDecimals.staking,
+        rewardDecimals: mintDecimals.reward,
+      })
+    }
+    if (budgetMode) {
+      if (mintDecimals.reward === null) return null
+      const budgetBase = parseAmountToBaseUnits(rewardBudget, mintDecimals.reward)
+      if (!budgetBase) return null
+      return BigInt(budgetBase.toString()) / durationSeconds
+    }
+    return null
+  })()
+
+  const rewardBudgetBase =
+    mintDecimals.reward !== null && rewardBudget.trim() !== ""
+      ? parseAmountToBaseUnits(rewardBudget, mintDecimals.reward)
+      : null
+  const requiredBudgetBase =
+    emissionPerSecondPreview !== null && durationSeconds !== null
+      ? emissionPerSecondPreview * durationSeconds
+      : null
+  // In APR mode an empty budget field means "fund exactly what the target
+  // requires"; otherwise the entered budget is what must sustain the emission.
+  const effectiveBudgetBase =
+    rewardBudgetBase ?? (aprMode && requiredBudgetBase !== null ? requiredBudgetBase : null)
+  const funding =
+    emissionPerSecondPreview !== null &&
+    durationSeconds !== null &&
+    effectiveBudgetBase !== null &&
+    emissionPerSecondPreview > 0n
+      ? validateRewardFunding({
+          emissionPerSecond: emissionPerSecondPreview,
+          budgetBase: BigInt(effectiveBudgetBase.toString()),
+          durationSeconds,
+        })
+      : null
+
+  // Truthful warnings - estimates only, never a promise of return.
+  const fundingWarnings: string[] = []
+  if (aprMode && emissionPerSecondPreview === 0n) {
+    fundingWarnings.push(
+      "The selected target rounds below 1 reward base unit per second on-chain. Increase the target APR or the reference stake.",
+    )
+  }
+  if (
+    funding &&
+    !funding.ok &&
+    requiredBudgetBase !== null &&
+    effectiveBudgetBase !== null &&
+    mintDecimals.reward !== null &&
+    funding.sustainSeconds !== null &&
+    durationSeconds !== null
+  ) {
+    fundingWarnings.push(
+      `Budget is insufficient for the chosen duration: at this emission it covers ${formatApproxDuration(funding.sustainSeconds)} of ${formatApproxDuration(durationSeconds)} (shortfall ${baseUnitsToTokens(funding.shortfallBase, mintDecimals.reward)} ${rewardSymbol || "reward tokens"}). Fund at least ${baseUnitsToTokens(requiredBudgetBase, mintDecimals.reward)} ${rewardSymbol || "reward tokens"}.`,
+    )
+  }
+  if (
+    availableRewardBase !== null &&
+    requiredBudgetBase !== null &&
+    availableRewardBase < requiredBudgetBase &&
+    mintDecimals.reward !== null
+  ) {
+    fundingWarnings.push(
+      `Available reward funding in the connected wallet (${baseUnitsToTokens(availableRewardBase, mintDecimals.reward)} ${rewardSymbol || "tokens"}) is below the estimated requirement (${baseUnitsToTokens(requiredBudgetBase, mintDecimals.reward)} ${rewardSymbol || "tokens"}).`,
+    )
+  }
+  if (aprFieldsTouched && !aprInputsValid) {
+    fundingWarnings.push(
+      "Fill BOTH Target APR and Reference stake with positive numbers to size the emission by APR — or clear both to size it by reward budget ÷ duration.",
+    )
+  }
+  if (aprInputsValid && durationOk && !sameMint && stakingMintKey && rewardMintKey) {
+    fundingWarnings.push(
+      "Staking and reward tokens are different mints and no price feed is available, so the target APR cannot be converted into an emission (raw quantities of different tokens are not comparable). The emission will be sized by reward budget ÷ duration; the APR shown is your stated target only.",
+    )
+  }
+
 
   /**
    * Validate the wizard's NFT Boost inputs and apply them to `poolAddress`
@@ -246,7 +441,7 @@ export function PoolCreationWizard() {
       // The staking mint's program is resolved (and validated) here as well so
       // a bad staking mint fails with the same user-facing error; only the
       // reward program's result is needed below.
-      const [, rewardTokenProgram] = await Promise.all([
+      const [stakingTokenProgram, rewardTokenProgram] = await Promise.all([
         resolveMintTokenProgram(connection, stakingMintKey),
         resolveMintTokenProgram(connection, rewardMintKey),
       ]).catch((error: unknown) => {
@@ -268,17 +463,62 @@ export function PoolCreationWizard() {
         )
       })
 
-      // Resolve the reward mint's decimals so the founder's whole-token-per-day
-      // input is converted to on-chain base units/second correctly. The mint is
-      // read through its OWN token program. Retried on transient transport
-      // failures only — a dropped connection must not abort the deployment.
-      const rewardMintInfo = await withRpcRetry(() =>
-        getMint(connection, rewardMintKey, "confirmed", rewardTokenProgram),
-      )
+      // Resolve BOTH mints' decimals (each read through its OWN token
+      // program - classic SPL Token or Token-2022). Retried on transient
+      // transport failures only — a dropped connection must not abort.
+      const [stakingMintInfo, rewardMintInfo] = await Promise.all([
+        withRpcRetry(() => getMint(connection, stakingMintKey, "confirmed", stakingTokenProgram)),
+        withRpcRetry(() => getMint(connection, rewardMintKey, "confirmed", rewardTokenProgram)),
+      ])
       const decimals = rewardMintInfo.decimals
-      const baseFactor = Math.pow(10, decimals)
-      // rewardRatePerSecond = (tokensPerDay * 10^decimals) / 86400, rounded to base units.
-      const rewardRatePerSecond = new BN(Math.max(1, Math.round((rewardPerDayNum * baseFactor) / 86400)))
+
+      // Convert the owner's chosen configuration into the on-chain emission
+      // (`reward_rate_per_second`, reward-mint base units per second).
+      let rewardRatePerSecond: BN
+      if (aprMode) {
+        // APR mode: emission = reference stake x target APR / 1 year.
+        // Validated on-chain side by rate > 0; validated HERE against the
+        // freshly read decimals (never the possibly-stale preview state).
+        const stakeBase = parseAmountToBaseUnits(referenceStake, stakingMintInfo.decimals)
+        if (!stakeBase) {
+          throw new Error(
+            "The reference stake is not a valid token amount for this mint's decimals. Fix it before deploying.",
+          )
+        }
+        const emission = emissionPerSecondForTargetApr({
+          aprPercent: aprNum,
+          referenceStakeBase: BigInt(stakeBase.toString()),
+          stakingDecimals: stakingMintInfo.decimals,
+          rewardDecimals: decimals,
+        })
+        if (emission === null) {
+          throw new Error(
+            "The target APR could not be converted to an emission. Check the target APR and reference stake.",
+          )
+        }
+        if (emission === 0n) {
+          throw new Error(
+            "The selected target APR rounds below 1 reward base unit per second on-chain. Increase the target APR or the reference stake.",
+          )
+        }
+        rewardRatePerSecond = new BN(emission.toString())
+      } else {
+        // Budget mode: emission = reward budget / duration. A target APR
+        // entered for different mints stays owner intent only (no price
+        // feed => no honest conversion; see the funding panel).
+        const budgetBase = parseAmountToBaseUnits(rewardBudget, decimals)
+        if (!budgetBase || durationSeconds === null) {
+          throw new Error("Reward budget and emission duration are required to size the emission.")
+        }
+        const perSecond = BigInt(budgetBase.toString()) / durationSeconds
+        if (perSecond < 1n) {
+          throw new Error(
+            "The chosen reward budget ÷ duration rounds below 1 reward base unit per second. Increase the budget or shorten the duration.",
+          )
+        }
+        rewardRatePerSecond = new BN(perSecond.toString())
+      }
+
       const poolId = new BN(Date.now())
       // On-chain lock_duration is in seconds; 0 means Flexible.
       const lockDurationSeconds = new BN(Math.max(0, Math.floor(lockSeconds)))
@@ -670,7 +910,9 @@ export function PoolCreationWizard() {
           <div className="flex flex-col gap-5">
             <div>
               <h2 className="text-base font-semibold">Reward Configuration</h2>
-              <p className="text-sm text-muted-foreground">Set the reward token and how fast rewards are emitted.</p>
+              <p className="text-sm text-muted-foreground">
+                Set the reward token, your target APR, and the reward budget and duration.
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="reward-mint">Reward Token Mint Address</Label>
@@ -685,37 +927,184 @@ export function PoolCreationWizard() {
               <TokenPreview state={rewardMeta} />
             </div>
 
-            {/* Reward Rate — stored on-chain as `reward_rate_per_second` (base units). */}
+            {/* Target APR — the owner-selected rate. Converted to the
+                on-chain `reward_rate_per_second` only when staking and reward
+                tokens share one valuation (same mint); otherwise it is the
+                owner's stated intent and the emission is sized by
+                budget ÷ duration (see the funding panel below). */}
             <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="reward-rate" className="flex items-center gap-1.5">
-                  <Percent className="size-4 text-primary" aria-hidden /> Reward Rate
+                <Label htmlFor="target-apr" className="flex items-center gap-1.5">
+                  <Percent className="size-4 text-primary" aria-hidden /> Target APR
                 </Label>
-                {rewardRateOk && (
+                {aprInputsValid && (
                   <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-sm font-semibold text-primary">
-                    {rewardPerDayNum.toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
-                    {rewardSymbol || "tokens"}/day
+                    {aprNum}% APR (estimated)
                   </span>
                 )}
               </div>
-              <div className="relative">
-                <Input
-                  id="reward-rate"
-                  inputMode="decimal"
-                  placeholder="e.g. 100"
-                  value={rewardPerDay}
-                  onChange={(e) => setRewardPerDay(e.target.value)}
-                  className="pr-24 font-mono"
-                  aria-invalid={rewardPerDay.trim() !== "" && !rewardRateOk}
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
-                  {rewardSymbol || "tokens"}/day
-                </span>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="target-apr">Target APR (%)</Label>
+                  <div className="relative">
+                    <Input
+                      id="target-apr"
+                      inputMode="decimal"
+                      placeholder="e.g. 12.5"
+                      value={targetApr}
+                      onChange={(e) => setTargetApr(e.target.value)}
+                      className="pr-10 font-mono"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      %
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="reference-stake">Reference Total Stake</Label>
+                  <div className="relative">
+                    <Input
+                      id="reference-stake"
+                      inputMode="decimal"
+                      placeholder="e.g. 1000000"
+                      value={referenceStake}
+                      onChange={(e) => setReferenceStake(e.target.value)}
+                      className="pr-28 font-mono"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      {stakingMeta.metadata?.symbol || "tokens"}
+                    </span>
+                  </div>
+                </div>
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Enter the emission in <strong>whole reward tokens per day</strong> — not raw base units. We convert it
-                to the on-chain <code className="font-mono">reward_rate_per_second</code> using the reward token&apos;s
-                decimals, split across all stakers. This is an emission rate, not a guaranteed APY.
+                The on-chain emission is sized as <strong>reference stake × target APR ÷ 1 year</strong>. Rewards
+                are paid linearly without compounding, so this is an estimated <strong>APR</strong> — not an APY,
+                and not a guarantee. The realized APR follows actual stake (it falls as more is staked) and can be
+                re-targeted later from the Admin page — accrued rewards are always settled at the old rate first.
+                Leave both fields empty to size the emission by reward budget ÷ duration instead.
+              </p>
+            </div>
+
+            {/* Reward budget, emission duration, and the funding check. */}
+            <div className="flex flex-col gap-3 rounded-lg border border-border p-4">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="reward-budget" className="flex items-center gap-1.5">
+                  <Percent className="size-4 text-primary" aria-hidden /> Reward Budget &amp; Duration
+                </Label>
+                {emissionPerSecondPreview !== null &&
+                  emissionPerSecondPreview > 0n &&
+                  mintDecimals.reward !== null && (
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 font-mono text-sm font-semibold text-primary">
+                      {(
+                        baseUnitsToTokens(emissionPerSecondPreview, mintDecimals.reward) * 86_400
+                      ).toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
+                      {rewardSymbol || "tokens"}/day
+                    </span>
+                  )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="reward-duration">Emission Duration</Label>
+                  <div className="relative">
+                    <Input
+                      id="reward-duration"
+                      inputMode="decimal"
+                      placeholder="e.g. 30"
+                      value={rewardDurationDays}
+                      onChange={(e) => setRewardDurationDays(e.target.value)}
+                      className="pr-16 font-mono"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      days
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="reward-budget">Reward Budget (total to fund)</Label>
+                  <div className="relative">
+                    <Input
+                      id="reward-budget"
+                      inputMode="decimal"
+                      placeholder={aprMode ? "optional: covers requirement" : "e.g. 50000"}
+                      value={rewardBudget}
+                      onChange={(e) => setRewardBudget(e.target.value)}
+                      className="pr-28 font-mono"
+                    />
+                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      {rewardSymbol || "tokens"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Funding check: requirement vs. budget vs. wallet balance.
+                  Estimates only — never a promise of return. */}
+              {emissionPerSecondPreview !== null &&
+              emissionPerSecondPreview > 0n &&
+              durationSeconds !== null &&
+              requiredBudgetBase !== null &&
+              mintDecimals.reward !== null ? (
+                <dl className="divide-y divide-border overflow-hidden rounded-lg border border-border text-xs">
+                  <ReviewRow
+                    label="Target rate"
+                    value={
+                      aprMode
+                        ? `${aprNum}% APR (estimated, non-compounding)`
+                        : aprInputsValid
+                          ? `${aprNum}% APR — not convertible (different tokens)`
+                          : "—"
+                    }
+                  />
+                  <ReviewRow
+                    label="Estimated funding requirement"
+                    value={`${baseUnitsToTokens(requiredBudgetBase, mintDecimals.reward).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"} over ${formatApproxDuration(durationSeconds)}`}
+                  />
+                  <ReviewRow
+                    label="Available reward funding"
+                    value={
+                      availableRewardBase !== null
+                        ? `${baseUnitsToTokens(availableRewardBase, mintDecimals.reward).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"} (connected wallet)`
+                        : publicKey
+                          ? "Not readable right now"
+                          : "Connect wallet to check"
+                    }
+                  />
+                  <ReviewRow
+                    label="Estimated funding duration"
+                    value={
+                      funding && funding.sustainSeconds !== null
+                        ? formatApproxDuration(funding.sustainSeconds)
+                        : "—"
+                    }
+                  />
+                </dl>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  The funding check appears once both mint addresses resolve and the target/budget inputs are
+                  valid — exact mint decimals are required and are never guessed.
+                </p>
+              )}
+
+              {fundingWarnings.length > 0 && (
+                <ul
+                  role="alert"
+                  className="space-y-1.5 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning"
+                >
+                  {fundingWarnings.map((warning, index) => (
+                    <li key={index} className="flex gap-1.5">
+                      <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                      <span>{warning}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                <strong>Assumptions:</strong> stake stays at the reference level; emission is linear
+                (non-compounding, hence APR); the reward vault stays funded — on-chain claims can never
+                distribute more than the vault holds, so rewards stop when funding runs out and are never
+                guaranteed. NFT-boosted positions emit extra rewards on top and are not included here.
               </p>
             </div>
 
@@ -798,10 +1187,46 @@ export function PoolCreationWizard() {
               <ReviewRow label="Reward Token" value={rewardMint || "—"} mono />
               <ReviewRow label="Lock-up Duration" value={formatLockDurationSeconds(lockSeconds)} />
               <ReviewRow
-                label="Reward Rate"
+                label="Emission Source"
+                value={aprMode ? "Target APR" : budgetMode ? "Reward budget ÷ duration" : "—"}
+              />
+              <ReviewRow
+                label="Target APR"
                 value={
-                  rewardRateOk
-                    ? `${rewardPerDayNum.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"}/day`
+                  aprInputsValid
+                    ? `${aprNum}%${sameMint ? "" : " (stated target — not convertible without a price feed)"}`
+                    : "—"
+                }
+              />
+              <ReviewRow
+                label="Emission Duration"
+                value={durationSeconds !== null ? formatApproxDuration(durationSeconds) : "—"}
+              />
+              <ReviewRow
+                label="Reward Budget"
+                value={
+                  rewardBudgetBase !== null && mintDecimals.reward !== null
+                    ? `${baseUnitsToTokens(rewardBudgetBase, mintDecimals.reward).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"}`
+                    : aprMode && requiredBudgetBase !== null && mintDecimals.reward !== null
+                      ? `${baseUnitsToTokens(requiredBudgetBase, mintDecimals.reward).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"} (auto: target requirement)`
+                      : "—"
+                }
+              />
+              <ReviewRow
+                label="Est. Funding Requirement"
+                value={
+                  requiredBudgetBase !== null && mintDecimals.reward !== null
+                    ? `${baseUnitsToTokens(requiredBudgetBase, mintDecimals.reward).toLocaleString(undefined, { maximumFractionDigits: 6 })} ${rewardSymbol || "tokens"}`
+                    : "—"
+                }
+              />
+              <ReviewRow
+                label="Emission"
+                value={
+                  emissionPerSecondPreview !== null &&
+                  emissionPerSecondPreview > 0n &&
+                  mintDecimals.reward !== null
+                    ? formatRewardEmission(emissionPerSecondPreview, mintDecimals.reward, rewardSymbol)
                     : "—"
                 }
               />
@@ -811,6 +1236,19 @@ export function PoolCreationWizard() {
               />
               {nftEnabled && <ReviewRow label="Collection ID" value={collectionId || "—"} mono />}
             </dl>
+            {fundingWarnings.length > 0 && (
+              <ul
+                role="alert"
+                className="space-y-1.5 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning"
+              >
+                {fundingWarnings.map((warning, index) => (
+                  <li key={index} className="flex gap-1.5">
+                    <ShieldAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                    <span>{warning}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {deployError && (
               <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {deployError}

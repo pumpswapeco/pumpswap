@@ -864,11 +864,25 @@ function PoolBody({
   // POOL-SCOPED: read for the pool this staking page is showing.
   const brand = useWhiteLabelConfig(poolAddress)
 
-  const [stakingDecimals, setStakingDecimals] =
-    useState(9)
+  /*
+   * Exact mint decimals read from chain; `null` = not read yet or read failed,
+   * i.e. the decimals are UNKNOWN. The Estimated APY uses ONLY these values
+   * and reports unavailable when either is null, so a failed read can never
+   * turn into a guessed percentage.
+   */
+  const [stakingMintDecimals, setStakingMintDecimals] =
+    useState<number | null>(null)
 
-  const [rewardDecimals, setRewardDecimals] =
-    useState(9)
+  const [rewardMintDecimals, setRewardMintDecimals] =
+    useState<number | null>(null)
+
+  /*
+   * Display-only decimals for token-unit conversions (balances, stake input,
+   * pending rewards). Keeps the pre-existing fallback of 9 while the read is
+   * pending or has failed, so every non-APY behavior stays exactly as before.
+   */
+  const stakingDecimals = stakingMintDecimals ?? 9
+  const rewardDecimals = rewardMintDecimals ?? 9
 
   const [amount, setAmount] = useState("")
 
@@ -947,8 +961,10 @@ function PoolBody({
         ])
 
         if (!cancelled) {
-          setStakingDecimals(s ?? 9)
-          setRewardDecimals(r ?? 9)
+          // Preserve `null` (unknown) so APY can refuse to guess; the derived
+          // stakingDecimals/rewardDecimals above keep the display fallback.
+          setStakingMintDecimals(s)
+          setRewardMintDecimals(r)
         }
       } catch {
         // Keep defaults if the RPC request fails.
@@ -1145,8 +1161,19 @@ function PoolBody({
    *
    * If total staked is zero, APY is intentionally shown
    * as unavailable instead of displaying a fake percentage.
+   * The same applies when either mint's decimals could not
+   * be read (`null`): a guessed decimal would fabricate the
+   * percentage, so the card falls back to its placeholder.
    */
   const estimatedApy = useMemo(() => {
+    // Mint decimals unknown (read pending or failed) -> unavailable.
+    if (
+      stakingMintDecimals === null ||
+      rewardMintDecimals === null
+    ) {
+      return null
+    }
+
     const totalStakedRaw = BigInt(
       pool.totalStaked.toString(),
     )
@@ -1167,12 +1194,12 @@ function PoolBody({
 
     const annualRewardTokens =
       Number(rewardRateRaw) /
-      Math.pow(10, rewardDecimals) *
+      Math.pow(10, rewardMintDecimals) *
       secondsPerYear
 
     const totalStakedTokens =
       Number(totalStakedRaw) /
-      Math.pow(10, stakingDecimals)
+      Math.pow(10, stakingMintDecimals)
 
     if (
       !Number.isFinite(annualRewardTokens) ||
@@ -1193,8 +1220,8 @@ function PoolBody({
   }, [
     pool.totalStaked,
     pool.rewardRatePerSecond,
-    rewardDecimals,
-    stakingDecimals,
+    rewardMintDecimals,
+    stakingMintDecimals,
   ])
 
   const updatedRpt = useMemo(
@@ -1642,9 +1669,12 @@ if (!program) {
           </div>
 
           <div className="text-xs text-muted-foreground">
-            {estimatedApy === null
-              ? "Requires active stake"
-              : "Based on current pool emission"}
+            {estimatedApy !== null
+              ? "Based on current pool emission"
+              : stakingMintDecimals === null ||
+                  rewardMintDecimals === null
+                ? "Mint decimals unavailable"
+                : "Requires active stake"}
           </div>
         </Card>
       </div>

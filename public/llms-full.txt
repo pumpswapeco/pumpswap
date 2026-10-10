@@ -1,0 +1,727 @@
+# Pumpswap — Full Documentation
+
+Product name: **Pumpswap**
+Production website: **https://liquidpump.app**
+Blockchain: **Solana** (on-chain Anchor program)
+
+> This document describes the Pumpswap implementation as it exists in the
+> current codebase. It documents what is implemented, not a roadmap. Where a
+> capability is planned but not implemented, or deployed only to Devnet and not
+> yet to Mainnet, that is stated explicitly.
+
+Naming and branding: the product is called **Pumpswap**. The production website
+domain is **liquidpump.app**. These refer to the same product; "liquidpump.app"
+is the production domain, not a separate brand. Pumpswap is an independent
+Solana staking platform and is **not** a Pump.fun affiliate or product, and is
+not affiliated with Pump.fun in any way.
+
+---
+
+## A. PROJECT OVERVIEW
+
+### What Pumpswap is
+
+Pumpswap is a no-code Solana staking platform. It lets a Solana project team
+create, fund, and manage a token staking pool through a web console, and then
+share a ready-made, brandable staking portal with its community. The staking,
+reward accrual, and reward-claim logic runs in an on-chain Anchor program
+(`pumpswap_staking`); the web application is a client that builds and submits
+transactions to that program.
+
+### Who it serves and the problems it solves
+
+Pumpswap is designed for **Solana project founders and token teams**. Building
+token staking normally requires designing and deploying a custom smart
+contract, writing a front end, and handling reward accounting. Pumpswap removes
+most of that work: a founder configures a pool, funds a reward vault, and gets
+a staking portal. Stakers connect their own Solana wallet, stake tokens, watch
+rewards accrue, and claim — all against the on-chain program.
+
+### Relationship between the Pumpswap product name and the liquidpump.app domain
+
+"Pumpswap" is the product name. "https://liquidpump.app" is the production
+website domain for that same product. They are not two different products. All
+production links in this documentation use https://liquidpump.app.
+
+### The Solana staking use case
+
+A founder chooses a staking token (the token users lock) and a reward token
+(the token distributed to stakers), sets a lock-up duration and an initial
+reward emission rate, and deploys the pool on-chain. The founder then funds the
+
+---
+
+## B. PLATFORM ARCHITECTURE
+
+Pumpswap has three layers: a Next.js web client, an on-chain Anchor program,
+and wallet integration for signing transactions.
+
+### Frontend
+
+The web application is a Next.js (App Router) React application. It reads
+on-chain state through a read-only Anchor client and submits transactions
+through a wallet-backed Anchor client (`lib/solana/program.ts`). Key modules:
+
+- `lib/solana/connection.ts` — builds the Solana `Connection`. Browser RPC
+  calls go through a same-origin proxy (`/api/rpc`) so no credentialed RPC URL
+  reaches the browser.
+- `lib/solana/network.ts` — resolves the configured cluster and RPC endpoints.
+- `lib/solana/ops.ts` — typed helpers that build each program instruction
+  (createPool, stake, unstake, claim, fund rewards, pause, freeze, set boost,
+  set reward rate) and fetch pool / position accounts.
+- `lib/solana/pda.ts` — derives all program PDAs (see "Pool accounts" below).
+- `lib/solana/token.ts` — detects whether a mint is owned by the classic SPL
+  Token program or Token-2022 and reads it with the correct program.
+- `lib/solana/rewards-calc.ts` — pure, dependency-free reward/APR math.
+
+### Solana program
+
+The on-chain program is `pumpswap_staking`, an Anchor program
+(`programs/pumpswap-staking/src/lib.rs`). Its instructions are:
+`initialize_platform`, `create_pool`, `set_pool_boost`, `fund_rewards`,
+`stake`, `unstake`, `claim_rewards`, `pause_pool`, `emergency_freeze`, and
+`set_reward_rate`.
+
+Reward accounting uses a `reward_per_token` accumulator scaled by
+`REWARD_SCALE = 1_000_000_000_000_000_000` (1e18). On each state-changing
+action, `update_pool_rewards` advances the accumulator by
+`elapsed * reward_rate_per_second * REWARD_SCALE / total_staked`. When
+`total_staked == 0`, time passes but nothing accrues. Each user position stores
+a `reward_debt` snapshot so a user's newly accrued rewards are the delta since
+their last settle.
+
+### Wallet integration
+
+Wallet connection uses `@solana/wallet-adapter-react`. The wallets configured
+in the codebase are **Phantom** and **Solflare**
+(`components/solana/solana-providers.tsx`). Users authorize every transaction
+with their own wallet; Pumpswap never signs on a user's behalf.
+
+### Pool accounts and reward vaults (PDAs)
+
+All program accounts are PDAs derived from the program ID. The seeds are:
+
+- `platform`: `["platform"]` — one-time platform config (admin, fee_bps).
+- `pool`: `["pool", authority, pool_id_le_bytes]`
+- `staking_vault`: `["staking_vault", pool]`
+- `reward_vault`: `["reward_vault", pool]`
+- `user_position`: `["user_position", pool, user]`
+
+The `staking_vault` and `reward_vault` are SPL/Token-2022 token accounts whose
+**authority is the pool PDA** (the program signs for them via PDA seeds). This
+is what makes the design non-custodial.
+
+### Non-custodial design (as supported by the implementation)
+
+- Staked tokens are transferred from the user into the pool's `staking_vault`,
+  a token account owned by the pool PDA. They are never held by Pumpswap.
+- Reward tokens are transferred from a funder into the pool's `reward_vault`,
+  also owned by the pool PDA.
+- On `unstake`, the program signs (via the pool PDA seeds) to return staking
+  tokens from the vault to the user's token account.
+- On `claim_rewards`, the program signs (via the pool PDA seeds) to transfer
+  accrued rewards from the reward vault to the user's reward token account.
+- There is **no instruction that lets a pool authority or platform admin
+  withdraw a staker's deposited tokens**. The authority can pause, freeze,
+  change the reward rate, and configure an NFT boost — but cannot extract user
+  principal from the staking vault.
+
+### Responsibilities of pool authorities and stakers
+
+- **Pool authority** (the wallet that created the pool): funds the reward
+  vault; sets the reward rate (Target APR or direct); configures the NFT boost;
+  can pause, emergency-freeze, and restore the pool.
+- **Staker** (any user): stakes, unstakes after the lock period, and claims
+  accrued rewards. The staker signs their own transactions from their own
+  wallet.
+
+pool's reward vault with reward tokens. Users stake the staking token; rewards
+accrue over time based on the pool's emission rate and each user's share of the
+total stake; users unstake (after any lock period) and claim rewards.
+
+---
+
+## C. STAKING POOLS
+
+### Pool creation and management
+
+A pool is created with the `create_pool` instruction, which takes:
+
+- `pool_id: u64` — a founder-chosen identifier (part of the pool PDA seeds, so a
+  single authority can operate multiple distinct pools).
+- `lock_duration: i64` — seconds tokens stay locked (must be `>= 0`; `0` means
+  "flexible" / no lock).
+- `reward_rate_per_second: u64` — the initial emission rate in reward-token
+  base units per second (must be `> 0`).
+
+Creation also initializes the `staking_vault` and `reward_vault` token accounts
+and stores the staking mint, reward mint, and their bumps on the pool account.
+In the console, the Create Pool wizard (`/create-pool`) walks through pool
+details, reward configuration, and review, then submits `create_pool` (and, if
+an NFT boost is configured, `set_pool_boost`).
+
+### Staking
+
+The `stake` instruction:
+
+- Requires `amount > 0`.
+- Reverts if the pool is paused or emergency-frozen.
+- Transfers `amount` of the staking token from the user into the staking
+  vault.
+- Increments the user position's `amount` and the pool's `total_staked`.
+- Sets the position's `locked_until` to `now + lock_duration` (it only ever
+  moves forward, so a new stake extends the lock rather than shortening it).
+- Settles the user's accrued rewards up to the current accumulator value.
+- If NFT boost is enabled on the pool, verifies and records the boost (see
+  section G).
+
+### Withdrawing (unstaking)
+
+The `unstake` instruction:
+
+- Requires the caller to own the position and `amount > 0`.
+- Requires the position to hold at least `amount`.
+- Requires `now >= locked_until` (the lock period must be met); otherwise it
+  reverts with `LockDurationNotMet`.
+- Settles accrued rewards, reduces the position and pool totals, and returns
+  `amount` of staking tokens from the vault to the user.
+
+### Claiming rewards
+
+The `claim_rewards` instruction:
+
+- Requires the caller to own the position.
+- Settles rewards, then requires `total_rewards > 0` (`NoRewardsToClaim`).
+- Requires the reward vault to hold at least `total_rewards`
+  (`InsufficientRewardVaultBalance`).
+- Zeroes the position's `accrued_rewards`, adds to `total_claimed`, and
+  transfers the reward tokens from the vault to the user's reward token
+  account.
+
+### Lock-up rules
+
+The lock duration is set at pool creation and stored on-chain. It cannot be
+changed after deployment. Each stake sets (or extends) `locked_until`. A
+`lock_duration` of `0` yields "flexible" staking with no lock. Unstaking before
+`locked_until` is not permitted.
+
+### Multiple pools operate independently
+
+Each pool is its own PDA with its own vaults, mints, lock duration, emission
+rate, pause/freeze flags, and NFT-boost configuration. One authority can run
+many pools (distinguished by `pool_id`). Pools do not share reward vaults or
+accrual state.
+
+### Pool-authority restrictions
+
+The following are **authority-only** (the signing wallet must equal
+`pool.authority`, enforced on-chain): `set_pool_boost`, `pause_pool`,
+`emergency_freeze`, and `set_reward_rate`. `fund_rewards` can be called by any
+funder who holds reward tokens; it is not restricted to the authority. Staking,
+unstaking, and claiming are open to any user wallet, subject to the pool's
+pause/freeze state and lock rules.
+
+
+---
+
+## D. REWARD FUNDING AND EMISSIONS
+
+### Depositing reward tokens
+
+`fund_rewards(amount)` transfers `amount` of the reward token from the funder's
+token account into the pool's `reward_vault` (via `transfer_checked`, using the
+reward mint's on-chain decimals). Any wallet holding the reward token can fund
+the vault; funding is not limited to the pool authority.
+
+### Configuring reward emissions
+
+The pool stores a single `reward_rate_per_second` (reward-token base units per
+second). Emissions are changed with the `set_reward_rate` instruction, which is
+authority-only. The console's Reward Settings card (`/admin`) exposes two
+equivalent ways to choose the rate:
+
+- **Target APR mode** — the owner states a target APR and a reference
+  (expected) staking amount. The app derives the per-second emission with
+  `emissionPerSecondForTargetApr` (see section E). This mode is only offered
+  when the staking token and reward token are the **same mint** (one shared
+  valuation), because converting an APR into an emission requires comparing
+  like-for-like value.
+- **Direct Reward Rate mode** — the owner states the emission directly in
+  reward tokens per day. No APR is claimed, so this mode works for every pool,
+  including cross-token pools.
+
+Both modes produce the same on-chain value (`reward_rate_per_second`) and are
+submitted through `setRewardRate()`.
+
+### How changing the reward rate affects future rewards
+
+`set_reward_rate` is deliberately ordered to be safe for already-accrued
+rewards:
+
+1. It first calls `update_pool_rewards`, settling `reward_per_token` up to the
+   current time at the **current (old) rate**. All rewards accrued before the
+   change keep their original terms — nothing is recalculated retroactively.
+2. Only then does it store the new `reward_rate_per_second`.
+
+The instruction moves no tokens. Rewards accrued after the change accrue at the
+new rate.
+
+### Reward-vault balance limits payouts
+
+The program never creates reward tokens; it only distributes what is in the
+`reward_vault`. `claim_rewards` reverts with `InsufficientRewardVaultBalance`
+when the vault cannot cover the user's accrued total. A pool that runs out of
+funded rewards simply stops paying out until the vault is funded again. Accrued
+but unclaimed rewards remain recorded on the position.
+
+### Reward-budget duration estimates
+
+The client provides budget planning helpers (in `lib/solana/rewards-calc.ts`):
+
+- `requiredRewardBudgetBase(emission, duration) = emission * duration` — how
+  much must be funded for the emission to run for a chosen duration.
+- `fundingSustainSeconds(budget, emission) = budget / emission` — how long a
+  funded budget lasts at the current emission (whole seconds, floored).
+- `validateRewardFunding(...)` — reports whether a chosen budget covers a chosen
+  duration and any shortfall.
+
+These are planning estimates based on a constant-emission assumption.
+
+### What an emission rate is (and is not)
+
+An emission rate is a **distribution rate**, not a guaranteed return. It
+describes how many reward tokens are distributed per second across all stakers.
+It does not guarantee that any individual staker receives a particular return,
+and funding a reward vault does not automatically guarantee any APR. Realized
+returns depend on total stake, how long a user stakes, and the reward vault
+staying funded.
+
+
+---
+
+## E. APR CALCULATIONS
+
+### Non-compounding APR estimate
+
+All APR figures in Pumpswap are **non-compounding annual percentage rate
+(APR) estimates**, never APY. The on-chain program does not auto-compound
+rewards. The core estimate (`estimatedAprBps`) is:
+
+```
+estimated APR = (emissionPerSecond * SECONDS_PER_YEAR * 10_000) / totalStaked
+```
+
+computed in exact integer math, using `SECONDS_PER_YEAR = 31_536_000`
+(365 days).
+
+### Realized APR changes as total stake changes
+
+The emission rate is fixed until the owner changes it, but APR is inversely
+proportional to total stake. As more users stake, the same emission is spread
+across a larger base, so each staker's share — and the estimated APR — goes
+down. Conversely, if stake decreases, the estimated APR rises. The displayed
+estimate reflects the pool's **current** on-chain total stake.
+
+### Target APR reference-stake input
+
+In Target APR mode the owner enters a **reference stake** — the amount of
+staking token the owner expects to be staked. The emission is sized so that,
+*if* total stake equals that reference amount, the realized APR matches the
+target. If actual stake differs from the reference, the realized APR will
+differ from the target. The reference stake is an assumption, not a guarantee.
+
+### Why same-mint pools can have a calculable APR
+
+When the staking token and the reward token are the **same mint**, both sides of
+the ratio are the same unit of value, and the mint decimals are known from the
+chain. The reward emission and the total stake can then be compared directly
+after a decimals adjustment, so a meaningful APR can be computed.
+
+### Why cross-token pools cannot reliably display APR
+
+When the staking token and reward token are different mints, comparing them
+requires a price conversion (how many reward tokens one staking token is
+worth). Pumpswap has **no price feed and no price-conversion mechanism**
+(by design — see the notes in `lib/solana/rewards-calc.ts`). Without a price,
+a cross-token APR would be meaningless, so these pools are treated as
+"APR not computable" rather than showing a misleading number. Owners of
+cross-token pools use Direct Reward Rate mode.
+
+### Why unknown decimals, zero stake, or zero emission prevent APR
+
+The APR math returns "not available" (not a guess) when it cannot be computed:
+
+- **Unknown mint decimals** — if the exact decimals cannot be read from the mint
+  account, the token-unit conversion is unknown, so APR cannot be computed.
+- **Zero stake** — with no stake, rewards accrue to nobody and the ratio is
+  undefined.
+- **Zero emission** — with no emission there is no reward to annualize.
+
+### Dashboard "Average Estimated APR"
+
+The dashboard's Average Estimated APR (`computeAverageEstimatedApr`) is the
+**arithmetic mean of the current estimated APR of every eligible pool**. A pool
+is eligible only when all of the following hold:
+
+- The staking and reward tokens are the **same mint** (cross-token pools are
+  excluded — no price feed).
+- Both mint decimals are known (read from chain).
+- There is stake (`totalStaked > 0`) and there is an emission
+  (`emissionPerSecond > 0`).
+
+Pools that fail any of these are excluded, and the dashboard reports how many
+pools were included and the reason each excluded pool was dropped
+(cross-token, unknown decimals, no stake yet, or no emission). The Target APR
+reference/preview value is **not** used in this average.
+
+### The average is an estimate, not a promised return
+
+The Average Estimated APR is a non-compounding estimate based on current on-
+chain emission and current stake. It is not a promised, guaranteed, or
+risk-free return, and it is not APY.
+
+
+---
+
+## F. TOKEN COMPATIBILITY
+
+### Supported token programs
+
+The program's token accounts are declared with Anchor's `token_interface`
+(`InterfaceAccount<Mint>`, `InterfaceAccount<TokenAccount>`, and
+`Interface<TokenInterface>`), and all transfers use `transfer_checked` with the
+mint's on-chain decimals. This means each pool may use, for its staking mint
+and/or its reward mint, either:
+
+- the **original SPL Token program** (`TOKEN_PROGRAM_ID`), or
+- **Token-2022** (`TOKEN_2022_PROGRAM_ID`).
+
+The client (`lib/solana/token.ts`) reads the mint account and detects which
+program owns it, then unpacks it with the correct program — a Token-2022 mint
+is never read through the legacy program.
+
+### Known limitations (stated accurately)
+
+- Support covers the standard mint/transfer behavior that `token_interface`
+  provides. Pumpswap does **not** implement special handling for individual
+  Token-2022 extensions (for example, transfer fees/hooks, confidential
+  transfers, or interest-bearing logic). Do not assume that a mint is fully
+  compatible merely because it uses Token-2022: a mint whose extension behavior
+  interferes with `transfer_checked` or vault accounting may not work as
+  expected.
+- Not every Token-2022 extension is supported. Compatibility has been exercised
+  for the standard transfer path on both classic SPL and Token-2022 mints; it
+  has not been verified for every extension configuration.
+
+
+---
+
+## G. NFT STAKING BOOSTS
+
+### What is implemented
+
+A pool authority can enable an NFT boost with `set_pool_boost(collection,
+boost_bps)`:
+
+- `boost_bps` is in basis points, capped at `MAX_NFT_BOOST_BPS = 10_000`
+  (i.e., up to +100% extra rewards).
+- A positive boost requires a non-default `collection` address; a `boost_bps`
+  of `0` clears and disables the boost (enforced both on-chain by
+  `normalize_boost` and in the client).
+
+### How boost eligibility is checked and applied
+
+When a pool has an NFT boost enabled, the `stake` instruction requires two
+additional accounts — the user's NFT token account and the NFT's Metaplex
+metadata account — and verifies on-chain that:
+
+- The NFT token account is owned by the staking user and holds at least one
+  token.
+- The metadata account is the canonical Metaplex metadata PDA for the NFT mint
+  and describes that same mint.
+- The metadata has a collection, that collection is **verified** by the
+  Metaplex authority, and it **matches** the pool's configured collection.
+
+If any check fails, the stake reverts. When boost is not enabled, these NFT
+accounts are optional and ordinary staking works without them.
+
+### How the boost value is applied (and snapshotted)
+
+The boost applied to a position always comes from the **pool configuration**,
+never from anything the frontend supplies. At stake time the program writes the
+pool's `nft_boost_bps` onto the user's `UserPosition` (`nft_boost_bps`). This
+value is **snapshotted on the position at staking time**. Reward accrual then
+applies the boost to the newly settled portion only:
+
+```
+boosted = baseReward * (10_000 + nftBoostBps) / 10_000
+```
+
+Already-accrued rewards are not re-boosted. If the pool's boost is later
+changed, existing positions keep the boost value recorded when they staked.
+
+### Collection verification requirement
+
+Only NFTs from the pool's configured collection, with a Metaplex-verified
+collection, satisfy the boost. Not every NFT collection is supported
+automatically — the collection must be explicitly configured on the pool and
+verified on-chain.
+
+
+---
+
+## H. ADMINISTRATION AND SECURITY
+
+### Pool-authority authorization
+
+Authority-gated instructions (`set_pool_boost`, `pause_pool`,
+`emergency_freeze`, `set_reward_rate`) enforce, on-chain, that the signing
+wallet equals `pool.authority`. A non-authority wallet cannot execute them.
+
+### Pause and emergency freeze
+
+Two independent boolean flags on the pool control availability:
+
+- **Pause** (`pause_pool`, authority-only): when paused, new `stake` deposits
+  revert with `PoolPaused`.
+- **Emergency freeze** (`emergency_freeze`, authority-only): when frozen, new
+  `stake` deposits revert with `PoolFrozen`, and `set_reward_rate` also reverts
+  with `PoolFrozen` (a frozen pool accepts no emission changes).
+
+Both are reversible by the authority (pause on/off, freeze on/off).
+
+### What the controls affect (per the actual instruction constraints)
+
+- `pause` and `emergency_freeze` **only block new staking deposits**. They do
+  **not** block `unstake` or `claim_rewards` — the `unstake` and
+  `claim_rewards` instructions do not check the `paused`/`frozen` flags. This
+  means users can always withdraw their staked tokens (after the lock period)
+  and claim already-accrued rewards, even while a pool is paused or frozen.
+- `emergency_freeze` additionally blocks `set_reward_rate`; `pause` does not.
+- `fund_rewards` is not blocked by pause or freeze.
+
+### How users authorize transactions
+
+Users sign every transaction with their own wallet (Phantom or Solflare)
+through the Solana wallet adapter. The program verifies account ownership and
+PDA constraints on-chain. Pumpswap never holds, generates, or controls users'
+private keys.
+
+### Account validation and reward-vault protections
+
+- Mint constraints verify the supplied staking/reward mints match the pool's
+  configured mints (`InvalidMint`).
+- Token-account constraints verify the mint, authority (user or pool), and
+  token program, and vaults are validated against their PDA seeds and stored
+  bumps.
+- Reward claims are capped by the actual `reward_vault` balance
+  (`InsufficientRewardVaultBalance`), so the program cannot pay out more than
+  the vault holds.
+- Arithmetic uses checked math with overflow guards (`MathOverflow`).
+
+### Security posture (stated accurately)
+
+- **No professional third-party smart-contract audit is claimed.** Do not
+  describe the contracts as audited.
+- The platform is **not** claimed to be immune to vulnerabilities.
+- **Devnet testing is not a security audit.** Activity on Devnet validates
+  behavior but does not constitute a security review or a Mainnet readiness
+  guarantee.
+
+
+---
+
+## I. WALLET AND NETWORK SUPPORT
+
+### Configured network
+
+The repository is configured for **Solana Devnet**. This is set by
+`NEXT_PUBLIC_SOLANA_NETWORK=devnet` (in `.env.example` and the local
+environment) and by `cluster = "devnet"` in `Anchor.toml`. The client supports
+`devnet`, `testnet`, and `mainnet-beta` in code (`lib/solana/network.ts`), but
+the deployed configuration in this repository is Devnet.
+
+### Devnet vs. Mainnet
+
+- Testing and the current deployment are on **Devnet**.
+- **Mainnet support/availability is not established** in this repository. A
+  feature that works on Devnet should not be assumed to be available or
+  production-ready on Mainnet.
+
+### Wallet support
+
+Only wallets verified in the codebase are: **Phantom** and **Solflare**
+(configured in `components/solana/solana-providers.tsx`). No other wallets are
+explicitly configured, though the standard wallet-adapter modal is used.
+
+---
+
+## J. DEVELOPER INFORMATION
+
+### Program architecture (high level)
+
+- Language/framework: Rust + Anchor. The program module is `pumpswap_staking`.
+- On-chain accounts: `Platform` (one-time config: `admin`, `fee_bps`, `bump`),
+  `Pool` (authority, pool_id, staking/reward mints, vault addresses,
+  lock_duration, reward_rate_per_second, total_staked, reward_per_token,
+  last_update_timestamp, paused, frozen, bumps, nft_collection, nft_boost_bps),
+  and `UserPosition` (owner, pool, amount, locked_until, reward_debt,
+  accrued_rewards, total_claimed, bump, nft_boost_bps).
+- Instructions: `initialize_platform`, `create_pool`, `set_pool_boost`,
+  `fund_rewards`, `stake`, `unstake`, `claim_rewards`, `pause_pool`,
+  `emergency_freeze`, `set_reward_rate`.
+- PDA seeds: `["platform"]`; `["pool", authority, pool_id_le]`;
+  `["staking_vault", pool]`; `["reward_vault", pool]`;
+  `["user_position", pool, user]`.
+
+### Program ID
+
+The deployed program ID is **`BYc1mF65g1JNr44BWefhnhKdPLDWbxcdUoKxcoDeZMWs`**.
+It is declared in `programs/pumpswap-staking/src/lib.rs` (`declare_id!`), in
+`Anchor.toml`, and in the IDL, and is read from
+`NEXT_PUBLIC_STAKING_PROGRAM_ID` in the client. It is a public Devnet address
+and is appropriate to publish.
+
+### Client integration
+
+The frontend uses `@coral-xyz/anchor` with the program IDL
+(`lib/solana/idl/pumpswap_staking.json`) to build and send transactions, and to
+fetch/deserialize `Pool` and `UserPosition` accounts. PDA derivation lives in
+`lib/solana/pda.ts`; per-instruction builders live in `lib/solana/ops.ts`; the
+shared reward/APR math lives in `lib/solana/rewards-calc.ts` (pure, no web3
+dependency).
+
+### What is NOT provided
+
+There is **no** public SDK package, REST/GraphQL API, webhook service, or
+indexer API implemented in this codebase. Developer integration is via the
+on-chain Anchor program and its IDL. Do not invent SDK packages, API endpoints,
+webhooks, or hosted developer services.
+
+### Secrets and credentials
+
+No private keys, seed phrases, passwords, RPC API secrets, or `.env` values are
+published here. RPC access from the browser goes through a same-origin proxy;
+server-side RPC credentials are never exposed to the client. This documentation
+intentionally omits all environment credentials.
+
+
+---
+
+## K. FREQUENTLY ASKED QUESTIONS
+
+**What is Pumpswap?**
+Pumpswap is a no-code Solana staking platform for project founders to create,
+fund, and manage non-custodial token staking pools and share a staking portal,
+backed by an on-chain Anchor program.
+
+**Who is Pumpswap designed for?**
+Solana project founders and token teams that want to offer staking to their
+community without building a custom staking contract and front end.
+
+**How does a project create a staking pool?**
+Connect the founder wallet, open Create Pool, choose a staking token and a
+reward token, set a lock duration and a reward rate (Target APR or Direct
+Reward Rate), optionally configure an NFT boost, and submit. This runs
+`create_pool` on-chain (and `set_pool_boost` if a boost is configured).
+
+**How are rewards funded?**
+By transferring reward tokens into the pool's reward vault with `fund_rewards`.
+Any wallet holding the reward token can fund it. Claims are limited by the
+vault balance, so the vault must stay funded for payouts to continue.
+
+**Who can change a pool's reward rate?**
+Only the pool authority (the wallet that created the pool), via the
+authority-only `set_reward_rate` instruction. It is also blocked while the pool
+is emergency-frozen.
+
+**Does Target APR guarantee a return?**
+No. Target APR is an owner-selected goal used to size the emission against a
+reference stake. The realized APR depends on actual total stake and changes as
+stake changes. It is a non-compounding estimate, not a guarantee or APY.
+
+**Why might a pool show no APR?**
+Because the APR cannot be reliably computed: the staking and reward tokens are
+different mints (cross-token, no price feed), the mint decimals are unknown,
+there is no stake yet, or there is no emission.
+
+**Why can the dashboard exclude a pool from Average Estimated APR?**
+The average uses only eligible pools. A pool is excluded when it is cross-token
+(no price feed), has unknown decimals, has no stake yet, or has no emission.
+The dashboard shows how many pools were included and why others were excluded.
+
+**What happens when a reward vault has insufficient tokens?**
+`claim_rewards` reverts with `InsufficientRewardVaultBalance`. Accrued rewards
+remain recorded on the user's position and can be claimed after the vault is
+funded again.
+
+**Does Pumpswap support Token-2022?**
+Yes — pools may use the original SPL Token program or Token-2022 for their
+staking and/or reward mints (standard mint/transfer behavior via
+`token_interface`). Not every Token-2022 extension is specially supported, so
+compatibility depends on the specific mint's extension behavior.
+
+**Is the current deployment on Devnet or Mainnet?**
+Devnet. The repository is configured for Solana Devnet. Mainnet availability is
+not established here.
+
+**Does Pumpswap create or control users' private keys?**
+No. Users connect their own wallet (Phantom or Solflare) and sign their own
+transactions. Pumpswap never holds or controls private keys and cannot move a
+user's funds.
+
+
+---
+
+## L. CURRENT LIMITATIONS AND AVAILABILITY
+
+### Implemented and Devnet-tested functionality
+
+The following are implemented in the current codebase and have been exercised
+on Devnet:
+
+- Pool creation and management (`create_pool`).
+- Funding rewards (`fund_rewards`).
+- Staking, unstaking (after lock), and claiming rewards (`stake`, `unstake`,
+  `claim_rewards`).
+- Owner-controlled reward-rate updates (`set_reward_rate`) and both Target APR
+  and Direct Reward Rate configuration paths.
+- NFT staking boosts (`set_pool_boost`) with on-chain collection verification.
+- Pause and emergency-freeze controls (`pause_pool`, `emergency_freeze`).
+- SPL Token and Token-2022 support for the standard mint/transfer path.
+- Dashboards, analytics, and activity views.
+
+### Important implementation limitations
+
+- **APR is a non-compounding estimate, not APY**, and changes with total stake.
+- **Cross-token pools cannot display a reliable APR** (no price feed).
+- **Pools with unknown decimals, zero stake, or zero emission show no APR.**
+- **Reward payouts are capped by the reward-vault balance.**
+- **Pause/freeze block new stakes only**; unstaking and claiming remain
+  available. `emergency_freeze` additionally blocks reward-rate changes.
+- **Lock duration is fixed at creation** and cannot be changed.
+- **NFT boost is snapshotted on the position at stake time.**
+- **Token-2022 support covers standard mint/transfer behavior only**; not every
+  extension is supported.
+- The `set_reward_rate` instruction exists in the current program source, but
+  the deployed program may predate it; the client probes the deployed program
+  before offering the control (`isSetRewardRateSupported`).
+
+### Devnet-tested vs. Mainnet availability
+
+- Functionality above is **Devnet-tested**. The current deployment target is
+  **Solana Devnet**.
+- **Mainnet availability is not established** in this repository. Nothing here
+  should be read as confirming that these features are deployed and verified on
+  Mainnet.
+
+### What is not claimed
+
+- **No professional smart-contract audit** is claimed.
+- **No guarantee** of returns, fixed profits, or risk-free staking.
+- **No claim** of immunity to vulnerabilities; Devnet testing is not a security
+  audit.
+- **No specific claims** about uptime, TVL, user counts, partnerships,
+  integrations, or adoption.
+- Building successfully does **not** by itself make a feature Mainnet-ready.
+

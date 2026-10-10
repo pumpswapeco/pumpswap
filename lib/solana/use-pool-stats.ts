@@ -363,8 +363,15 @@ export async function loadPoolStats(
             rewardSymbol: rewardMeta.symbol,
             stakingImage: stakingMeta.image,
             rewardImage: rewardMeta.image,
+            // Display-only fallbacks: unchanged behavior for TVL, balances
+            // and other token-unit labels. APY must read the EXACT values
+            // below instead - a guessed 9 must never produce a percentage.
             stakingDecimals: stakingDecimals ?? 9,
             rewardDecimals: rewardDecimals ?? 9,
+            // Exact mint decimals with the unknown state preserved (`null`
+            // when the mint account could not be read).
+            stakingMintDecimals: stakingDecimals,
+            rewardMintDecimals: rewardDecimals,
             totalStaked: pool.totalStaked,
             rewardRatePerSecond: pool.rewardRatePerSecond,
             lockDuration: pool.lockDuration,

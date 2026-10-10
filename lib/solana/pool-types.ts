@@ -24,8 +24,29 @@ export interface RealPool {
   rewardSymbol: string
   stakingImage?: string
   rewardImage?: string
+  /**
+   * Display decimals for the staking mint. When the mint read failed this
+   * holds a display-only fallback (9) so token-unit labels (TVL, balances,
+   * stake input) keep working unchanged. APY math must NOT use this value -
+   * it must use `stakingMintDecimals` below.
+   */
   stakingDecimals: number
+  /**
+   * Display decimals for the reward mint; see `stakingDecimals`.
+   */
   rewardDecimals: number
+  /**
+   * EXACT staking-mint decimals read from the mint account (works for both
+   * classic SPL Token and Token-2022 mints). `null` = the read failed or has
+   * not completed yet, i.e. the decimals are UNKNOWN. APY calculations must
+   * treat `null` as unavailable and never substitute a guess.
+   */
+  stakingMintDecimals: number | null
+  /**
+   * EXACT reward-mint decimals read from the mint account; `null` = unknown.
+   * See `stakingMintDecimals`.
+   */
+  rewardMintDecimals: number | null
   /** Total staking tokens currently locked (base units). */
   totalStaked: BN
   /** Reward emission in base units per second. */

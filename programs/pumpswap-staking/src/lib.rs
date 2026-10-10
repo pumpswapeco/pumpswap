@@ -433,6 +433,50 @@ pub mod pumpswap_staking {
 
         Ok(())
     }
+
+    /// Owner-controlled emission update for an EXISTING pool - the smallest
+    /// safe way to let a pool authority re-target its APR when total stake
+    /// (or the reward budget) changes after launch.
+    ///
+    /// Ordering is everything here:
+    ///
+    /// 1. settle `reward_per_token` up to now at the CURRENT rate first
+    ///    (`update_pool_rewards`): every reward accrued before this call
+    ///    keeps its original terms, so nothing is recalculated
+    ///    retroactively and accrued rewards can never be over- or
+    ///    under-paid by the rate change;
+    /// 2. only then store the new `reward_rate_per_second`.
+    ///
+    /// No account fields are added, resized or reordered: the `Pool` layout
+    /// - and therefore every already-deployed pool account - is untouched.
+    /// The instruction does NOT move any tokens: distributions remain
+    /// strictly limited by the reward vault balance at claim time, so an
+    /// underfunded pool can never pay out more than it holds.
+    pub fn set_reward_rate(
+        ctx: Context<SetPoolRewardRate>,
+        reward_rate_per_second: u64,
+    ) -> Result<()> {
+        require!(reward_rate_per_second > 0, StakingError::InvalidRewardRate);
+
+        let now = Clock::get()?.unix_timestamp;
+        let pool = &mut ctx.accounts.pool;
+
+        // An emergency-frozen pool accepts no state changes (mirrors the
+        // stake / unstake / claim guards).
+        require!(!pool.frozen, StakingError::PoolFrozen);
+
+        // Settle all accrual at the OLD rate before mutating it.
+        update_pool_rewards(pool, now)?;
+        pool.reward_rate_per_second = reward_rate_per_second;
+
+        emit!(PoolRewardRateUpdated {
+            pool: pool.key(),
+            authority: ctx.accounts.authority.key(),
+            reward_rate_per_second,
+        });
+
+        Ok(())
+    }
 }
 
 fn update_pool_rewards(pool: &mut Account<Pool>, now: i64) -> Result<()> {
@@ -876,6 +920,17 @@ pub struct EmergencyFreeze<'info> {
     pub pool: Account<'info, Pool>,
 }
 
+#[derive(Accounts)]
+pub struct SetPoolRewardRate<'info> {
+    #[account(
+        constraint = authority.key() == pool.authority @ StakingError::Unauthorized
+    )]
+    pub authority: Signer<'info>,
+
+    #[account(mut)]
+    pub pool: Account<'info, Pool>,
+}
+
 #[account]
 pub struct Platform {
     pub admin: Pubkey,
@@ -994,6 +1049,13 @@ pub struct PoolStatusChanged {
     pub authority: Pubkey,
     pub paused: bool,
     pub frozen: bool,
+}
+
+#[event]
+pub struct PoolRewardRateUpdated {
+    pub pool: Pubkey,
+    pub authority: Pubkey,
+    pub reward_rate_per_second: u64,
 }
 
 #[error_code]

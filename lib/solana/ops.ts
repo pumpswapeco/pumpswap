@@ -7,7 +7,7 @@ import {
   TokenAccountNotFoundError,
   unpackAccount,
 } from '@solana/spl-token'
-import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js'
+import { PublicKey, SystemProgram, Transaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 
 import { findPoolPda, findPlatformPda, findRewardVaultPda, findStakingVaultPda, findUserPositionPda } from '@/lib/solana/pda'
 import type { StakingProgram } from '@/lib/solana/program'
@@ -1038,4 +1038,111 @@ export async function setPoolBoost(
       pool: opts.poolAddress,
     })
     .rpc()
+}
+
+/**
+ * Change an existing pool's on-chain emission (`reward_rate_per_second`)
+ * via the `set_reward_rate` instruction.
+ *
+ * Instruction (verified against lib/solana/idl/pumpswap_staking.json):
+ *   name:        set_reward_rate   (typed IDL: `setRewardRate`)
+ *   args:        reward_rate_per_second: u64 (reward-mint base units/second)
+ *   accounts:    authority (signer) - must equal `pool.authority` on-chain
+ *                pool (writable)
+ *
+ * ON-CHAIN SEMANTICS - why this is safe for already-accrued rewards: the
+ * program FIRST settles `reward_per_token` up to the current slot at the
+ * OLD rate (`update_pool_rewards`), and only then stores the new rate.
+ * Every reward accrued before the transaction therefore keeps its
+ * original terms: nothing is recalculated retroactively and nothing can
+ * be over- or under-paid by the change. The instruction moves no tokens -
+ * claims remain capped by the reward vault balance on-chain.
+ *
+ * The connected wallet signs exactly like the other admin helpers
+ * (pausePool / setPoolBoost). The rate must be > 0 base units/second.
+ * Throws on validation failure or when the transaction fails; returns
+ * the transaction signature only on confirmation.
+ *
+ * NOTE: this instruction exists in the CURRENT program source but the
+ * deployed program may predate it - probe availability first with
+ * `isSetRewardRateSupported` so users never send a doomed transaction.
+ */
+export async function setRewardRate(
+  program: StakingProgram,
+  opts: { poolAddress: PublicKey; authority: PublicKey; rewardRatePerSecond: BN },
+): Promise<string> {
+  if (opts.rewardRatePerSecond.lte(new BN(0))) {
+    throw new Error('Reward rate must be greater than zero reward base units per second.')
+  }
+
+  return program.methods
+    .setRewardRate(opts.rewardRatePerSecond)
+    .accountsPartial({
+      authority: opts.authority,
+      pool: opts.poolAddress,
+    })
+    .rpc()
+}
+
+/**
+ * Probe whether the DEPLOYED program actually knows `set_reward_rate`.
+ *
+ * Building the instruction only exercises the local IDL, so the only
+ * truthful check is to simulate one transaction against the live program
+ * and inspect the failure mode:
+ *
+ *   - instruction executes (ok, or fails later with a CONSTRAINT/CUSTOM
+ *     error such as Unauthorized or PoolFrozen) -> the instruction EXISTS;
+ *   - the BPF loader reports `InstructionFallbackNotFound` -> the
+ *     deployed build predates the instruction ("requires upgrade").
+ *
+ * Signature verification is disabled (unsigned probe) and the blockhash
+ * is replaced by the RPC, so nothing is signed, sent or committed. The
+ * result only depends on the deployed program + RPC endpoint, so it is
+ * cached per program/endpoint for the session.
+ */
+const rewardRateSupportCache = new Map<string, Promise<boolean>>()
+
+export function isSetRewardRateSupported(
+  program: StakingProgram,
+  opts: { poolAddress: PublicKey; authority: PublicKey },
+): Promise<boolean> {
+  const key = `${program.programId.toBase58()}|${program.provider.connection.rpcEndpoint}`
+  const inFlight = rewardRateSupportCache.get(key)
+  if (inFlight) return inFlight
+
+  const promise = (async () => {
+    const connection = program.provider.connection
+    const instruction = await program.methods
+      // Rate value is irrelevant to the probe: even an accepted instruction
+      // fails or succeeds on its own merits after dispatch.
+      .setRewardRate(new BN(1))
+      .accountsPartial({ authority: opts.authority, pool: opts.poolAddress })
+      .instruction()
+
+    const message = new TransactionMessage({
+      payerKey: opts.authority,
+      recentBlockhash: (await connection.getLatestBlockhash('confirmed')).blockhash,
+      instructions: [instruction],
+    }).compileToV0Message()
+
+    const simulation = await connection.simulateTransaction(new VersionedTransaction(message), {
+      sigVerify: false,
+      replaceRecentBlockhash: true,
+    })
+
+    if (!simulation.value.err) return true
+    const detail =
+      JSON.stringify(simulation.value.err) + '\n' + (simulation.value.logs ?? []).join('\n')
+    return !detail.includes('InstructionFallbackNotFound')
+  })().catch((error) => {
+    // A transport failure must not be misreported as "supported": drop the
+    // cache entry so the next mount retries, and surface false to the UI.
+    rewardRateSupportCache.delete(key)
+    console.error('[isSetRewardRateSupported] probe failed:', error)
+    return false
+  })
+
+  rewardRateSupportCache.set(key, promise)
+  return promise
 }

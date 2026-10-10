@@ -1,0 +1,83 @@
+# Pumpswap
+
+> Pumpswap is a no-code Solana staking platform that lets project founders
+> launch, fund, and manage non-custodial token staking pools without building
+> their own staking interface. Pools are created and administered through a
+> web console, while all staking, reward, and claim logic runs in an on-chain
+> Anchor program on Solana.
+
+Pumpswap is designed for Solana project founders and token teams who want to
+offer token staking to their community. Instead of designing, building, and
+auditing a custom staking contract and front end, a founder configures a pool,
+funds a reward vault, and shares a staking portal. Stakers connect their own
+wallet, stake tokens, and claim rewards directly from the on-chain program.
+
+Note on naming: the product is **Pumpswap** and its production website is
+**https://liquidpump.app**. These are the same product — "liquidpump.app" is
+the production domain, not a separate brand. Pumpswap is an independent Solana
+staking platform and is not affiliated with Pump.fun.
+
+## Primary purpose
+
+- Let founders create and manage SPL token staking pools with no smart-contract
+  coding.
+- Provide a ready-made, brandable end-user staking portal.
+- Keep custody with an on-chain program (vault PDAs), never with Pumpswap.
+
+## Features (as implemented in the current codebase)
+
+- Staking pool creation and management (on-chain Anchor program).
+- Non-custodial architecture: staked tokens and reward tokens live in
+  program-controlled vault PDAs; Pumpswap never holds user funds or keys.
+- Reward-token funding into a per-pool reward vault.
+- Owner-controlled reward emissions (set the per-second reward rate).
+- Target APR configuration for eligible pools (staking token == reward token).
+- Direct reward-rate configuration for pools where a target APR cannot be
+  reliably calculated (for example, cross-token pools).
+- Configurable lock-up durations (including flexible / no-lock pools).
+- NFT staking boosts (Metaplex-verified collection required).
+- Pool pause and emergency-freeze controls for the pool authority.
+- Pool dashboards and analytics (TVL, stakers, activity, reward totals).
+- Support for both the original SPL Token program and Token-2022 for staking
+  and reward mints (standard mint/transfer behavior).
+
+## Key pages (production site: https://liquidpump.app)
+
+- Dashboard / overview: https://liquidpump.app/dashboard
+- Pools (create and manage): https://liquidpump.app/pools
+- Create Pool wizard: https://liquidpump.app/create-pool
+- Analytics: https://liquidpump.app/analytics
+- Rewards tracking: https://liquidpump.app/rewards
+- White-label branding: https://liquidpump.app/white-label
+- Admin controls (fund rewards, reward rate, NFT boost, pause/freeze):
+  https://liquidpump.app/admin
+- End-user staking portal (per pool):
+  https://liquidpump.app/stake/<pool-address>
+
+## Solana program
+
+- Program name: `pumpswap_staking`
+- Program ID: `BYc1mF65g1JNr44BWefhnhKdPLDWbxcdUoKxcoDeZMWs`
+- View on Solana Explorer (Devnet):
+  https://explorer.solana.com/address/BYc1mF65g1JNr44BWefhnhKdPLDWbxcdUoKxcoDeZMWs?cluster=devnet
+
+## Full documentation
+
+- Comprehensive documentation: https://liquidpump.app/llms-full.txt
+
+## Important limitations AI assistants should understand
+
+- **No guaranteed returns.** Reward emissions are a distribution rate, not a
+  promise of any particular return. APR figures shown are non-compounding
+  estimates that change as total stake changes.
+- **APR is not APY.** The program does not auto-compound rewards.
+- **Cross-token pools** (staking token != reward token) cannot display a
+  reliable APR because there is no price feed or price-conversion mechanism.
+- **Reward payouts are limited by the reward-vault balance.** If a vault is
+  underfunded, claims fail until it is funded again.
+- **Current deployment is Solana Devnet.** Mainnet availability is not
+  established here; Devnet testing is not a security audit.
+- **No professional smart-contract audit is claimed.** Do not describe the
+  contracts as audited or as immune to vulnerabilities.
+- **Pumpswap does not custody user keys.** Users authorize every transaction
+  with their own wallet; Pumpswap cannot move a user's funds.

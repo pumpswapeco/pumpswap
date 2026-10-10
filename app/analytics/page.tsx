@@ -31,10 +31,17 @@ export default function AnalyticsPage() {
 const apyDisplay = stats.loading
   ? "…"
   : (() => {
+      // Eligible pools: non-zero stake AND emission, with BOTH mint decimals
+      // actually read from chain. Pools with unknown decimals are excluded -
+      // their APY would require a guessed decimal, and a guessed value must
+      // never enter the average. When nothing is eligible the metric falls
+      // through to the unavailable placeholder ("—") below.
       const activePools = stats.pools.filter(
         (p) =>
           BigInt(p.totalStaked.toString()) > BigInt(0) &&
-          BigInt(p.rewardRatePerSecond.toString()) > BigInt(0),
+          BigInt(p.rewardRatePerSecond.toString()) > BigInt(0) &&
+          p.stakingMintDecimals !== null &&
+          p.rewardMintDecimals !== null,
       )
 
       if (activePools.length === 0) return "—"
@@ -46,14 +53,20 @@ const apyDisplay = stats.loading
           const totalStakedRaw = BigInt(p.totalStaked.toString())
           const rewardRateRaw = BigInt(p.rewardRatePerSecond.toString())
 
+          // Exact mint decimals (non-null for eligible pools; the guard keeps
+          // the narrowing explicit for the compiler).
+          const stakingDecimals = p.stakingMintDecimals
+          const rewardDecimals = p.rewardMintDecimals
+          if (stakingDecimals === null || rewardDecimals === null) return null
+
           const annualRewardTokens =
             Number(rewardRateRaw) /
-            Math.pow(10, p.rewardDecimals) *
+            Math.pow(10, rewardDecimals) *
             (365 * 24 * 60 * 60)
 
           const totalStakedTokens =
             Number(totalStakedRaw) /
-            Math.pow(10, p.stakingDecimals)
+            Math.pow(10, stakingDecimals)
 
           if (
             !Number.isFinite(annualRewardTokens) ||

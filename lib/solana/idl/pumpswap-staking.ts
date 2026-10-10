@@ -457,6 +457,35 @@ export type PumpswapStaking = {
       ]
     },
     {
+      "name": "setRewardRate",
+      "discriminator": [
+        253,
+        201,
+        190,
+        20,
+        48,
+        38,
+        120,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "rewardRatePerSecond",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "stake",
       "discriminator": [
         206,
@@ -756,6 +785,19 @@ export type PumpswapStaking = {
         220,
         157,
         82
+      ]
+    },
+    {
+      "name": "PoolRewardRateUpdated",
+      "discriminator": [
+        124,
+        54,
+        174,
+        21,
+        233,
+        248,
+        0,
+        8
       ]
     },
     {
@@ -1120,6 +1162,26 @@ export type PumpswapStaking = {
           {
             "name": "lockDuration",
             "type": "i64"
+          },
+          {
+            "name": "rewardRatePerSecond",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolRewardRateUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
           },
           {
             "name": "rewardRatePerSecond",

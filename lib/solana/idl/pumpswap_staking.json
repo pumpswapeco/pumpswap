@@ -451,6 +451,35 @@
       ]
     },
     {
+      "name": "set_reward_rate",
+      "discriminator": [
+        253,
+        201,
+        190,
+        20,
+        48,
+        38,
+        120,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "reward_rate_per_second",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "stake",
       "discriminator": [
         206,
@@ -750,6 +779,19 @@
         220,
         157,
         82
+      ]
+    },
+    {
+      "name": "PoolRewardRateUpdated",
+      "discriminator": [
+        124,
+        54,
+        174,
+        21,
+        233,
+        248,
+        0,
+        8
       ]
     },
     {
@@ -1114,6 +1156,26 @@
           {
             "name": "lock_duration",
             "type": "i64"
+          },
+          {
+            "name": "reward_rate_per_second",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PoolRewardRateUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
           },
           {
             "name": "reward_rate_per_second",
