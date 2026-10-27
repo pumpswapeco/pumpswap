@@ -38,3 +38,6 @@ _*.json
 
 # Next.js generated types
 next-env.d.ts
+pumpswap-docs/server/.env
+pumpswap-docs/server/.env.*
+!pumpswap-docs/server/.env.example

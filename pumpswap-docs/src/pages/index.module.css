@@ -1,0 +1,205 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  padding: 6rem 1.5rem 5rem;
+  text-align: center;
+  color: #f5fff9;
+  background:
+    radial-gradient(ellipse at 50% 0%, #176b4b 0%, transparent 65%),
+    linear-gradient(135deg, #061b14 0%, #092b20 55%, #04150f 100%);
+}
+
+.hero h1 {
+  margin-bottom: 1.25rem;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.hero p {
+  max-width: 760px;
+  margin: 1rem auto;
+  line-height: 1.8;
+  color: #c5ded1;
+}
+
+.subtitle {
+  font-size: clamp(1.15rem, 2.5vw, 1.6rem);
+  font-weight: 600;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.buttons a {
+  min-width: 190px;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: transform 0.2s ease;
+}
+
+.buttons a:hover {
+  transform: translateY(-2px);
+}
+
+.features {
+  padding: 4.5rem 0;
+  background: var(--ifm-background-color);
+}
+
+.feature {
+  height: 100%;
+  padding: 2rem 1.5rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 18px;
+  background: var(--ifm-card-background-color);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.feature:hover {
+  transform: translateY(-4px);
+  border-color: #199765;
+}
+
+.featureIcon {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  margin-bottom: 1.5rem;
+  border: 1px solid #24865d;
+  border-radius: 18px;
+  background: rgba(25, 151, 101, 0.12);
+  color: #2ca975;
+  font-size: 2.5rem;
+}
+
+.featureLabel {
+  color: #259568;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.feature h2 {
+  margin-top: 1rem;
+  font-size: 1.35rem;
+}
+
+.feature p:last-child {
+  margin-bottom: 0;
+  line-height: 1.8;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.statusSection {
+  padding: 4rem 1.5rem;
+  border-top: 1px solid var(--ifm-color-emphasis-300);
+  background: var(--ifm-background-surface-color);
+}
+
+.statusSection h2 {
+  margin-bottom: 1.25rem;
+}
+
+.statusSection p {
+  max-width: 850px;
+  line-height: 1.9;
+}
+
+@media screen and (max-width: 996px) {
+  .hero {
+    padding: 4rem 1rem;
+  }
+
+  .features .row {
+    row-gap: 1.5rem;
+  }
+
+  .feature {
+    padding: 1.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature,
+  .buttons a {
+    transition: none;
+  }
+}
+
+.socialSection {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  margin: 2rem auto;
+  max-width: 900px;
+}
+
+.socialSection h2 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.socialSection p {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1.75rem;
+}
+
+
+eyebrow {
+  color: #55f2a4;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+}
+
+.illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  margin: -0.5rem 0 1rem;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at center, rgba(85, 242, 164, 0.09), transparent 68%);
+}
+
+.illustration svg {
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+}
+
+.feature {
+  height: 100%;
+}
+
+.featureLabel {
+  color: var(--ifm-color-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 996px) {
+  .feature {
+    margin-bottom: 1.5rem;
+  }
+}
+
+
+
+
+
+
+
+
+

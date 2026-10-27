@@ -1,0 +1,377 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #2e8555;
+  --ifm-color-primary-dark: #29784c;
+  --ifm-color-primary-darker: #277148;
+  --ifm-color-primary-darkest: #205d3b;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #25c2a0;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+.pumpswap-social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.pumpswap-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 10px;
+  color: var(--ifm-font-color-base);
+  background: var(--ifm-background-surface-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.pumpswap-social-link:hover {
+  border-color: #20a36a;
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+.pumpswap-social-link > span:first-child {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+@media (max-width: 600px) {
+  .pumpswap-social-link {
+    flex: 1 1 145px;
+    justify-content: center;
+  }
+}
+
+
+
+
+/* PumpSwap tokenomics components */
+.tokenomics-chart {
+  margin: 2rem 0;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 18px;
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.055);
+}
+
+.tokenomics-chart__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tokenomics-chart__heading h3 {
+  margin: 0.35rem 0;
+}
+
+.tokenomics-chart__heading p {
+  margin-bottom: 0;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.tokenomics-eyebrow {
+  color: var(--ifm-color-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.tokenomics-total {
+  flex-shrink: 0;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.tokenomics-chart__layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.tokenomics-pie {
+  display: block;
+  width: 100%;
+  max-width: 290px;
+  margin: auto;
+}
+
+.tokenomics-legend {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.tokenomics-legend__item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.tokenomics-legend__dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.tokenomics-legend__amount {
+  grid-column: 2 / 4;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.78rem;
+}
+
+.tokenomics-disclaimer {
+  margin: 1.5rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.82rem;
+}
+
+.tokenomics-supply-bar {
+  display: flex;
+  overflow: hidden;
+  min-height: 58px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.tokenomics-supply-bar__circulating,
+.tokenomics-supply-bar__remaining {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tokenomics-supply-bar__circulating {
+  width: 40%;
+  background: #20a981;
+}
+
+.tokenomics-supply-bar__remaining {
+  width: 60%;
+  background: #495057;
+}
+
+.tokenomics-supply-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.tokenomics-supply-legend > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.tokenomics-supply-legend strong,
+.tokenomics-supply-legend small {
+  display: block;
+}
+
+.tokenomics-supply-legend small {
+  margin-top: 0.2rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+@media (max-width: 700px) {
+  .tokenomics-chart__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tokenomics-pie {
+    max-width: 240px;
+  }
+
+  .tokenomics-chart__heading {
+    flex-direction: column;
+  }
+
+  .tokenomics-supply-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* PumpSwap PLH token overview cards */
+.tokenomics-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.tokenomics-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 1.35rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  background: var(--ifm-background-surface-color);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 4%);
+}
+
+.tokenomics-stat-card__label {
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.tokenomics-stat-card__value {
+  color: var(--ifm-color-primary);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.2;
+}
+
+.tokenomics-stat-card__detail {
+  font-size: 0.9rem;
+}
+
+.tokenomics-stat-card__percentage {
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .tokenomics-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* PumpSwap PLH proposed vesting timeline */
+.tokenomics-vesting__list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.tokenomics-vesting__item {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.tokenomics-vesting__marker {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 2px solid var(--vesting-color);
+  border-radius: 50%;
+  color: var(--vesting-color);
+  font-weight: 700;
+}
+
+.tokenomics-vesting__content {
+  min-width: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-left: 4px solid var(--vesting-color);
+  border-radius: 10px;
+  background: var(--ifm-background-surface-color);
+}
+
+.tokenomics-vesting__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+}
+
+.tokenomics-vesting__top h4 {
+  margin: 0;
+}
+
+.tokenomics-vesting__top strong {
+  color: var(--vesting-color);
+}
+
+.tokenomics-vesting__content > p {
+  margin: 0.75rem 0;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.tokenomics-vesting__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tokenomics-vesting__meta span {
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  background: var(--ifm-color-emphasis-100);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 576px) {
+  .tokenomics-vesting__item {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  .tokenomics-vesting__marker {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .tokenomics-vesting__content {
+    padding: 0.85rem;
+  }
+}
+
+
+
+
+
