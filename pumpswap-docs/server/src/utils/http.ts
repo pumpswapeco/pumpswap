@@ -34,7 +34,9 @@ export async function fetchJson<T = any>(url: string, body?: any): Promise<T> {
       const text = await resp.text();
       throw new Error(`HTTP ${resp.status}: ${text}`);
     }
-    return await resp.json();
+    // resp.json() is `unknown` at runtime — the JSON shape cannot be verified
+    // statically, so assert the caller's generic type directly (no `any`).
+    return (await resp.json()) as T;
   } finally {
     clearTimeout(timeout);
   }
@@ -61,7 +63,11 @@ export async function fetchStream(
       const text = await resp.text();
       throw new Error(`HTTP ${resp.status}: ${text}`);
     }
-    return resp.body;
+    const responseBody = resp.body;
+    if (responseBody === null) {
+      throw new Error(`HTTP ${resp.status}: response body stream is null`);
+    }
+    return responseBody;
   } finally {
     clearTimeout(timeout);
   }

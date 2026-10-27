@@ -48,7 +48,10 @@ export function getConfig(): ServerConfig {
     process.env.MAX_RESPONSE_SIZE_BYTES || "52428800",
     10
   );
-  const allowOrigins = process.env.ALLOW_ORIGINS || "*";
+  const allowOrigins = (process.env.ALLOW_ORIGINS || "*")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
 
   return {
     port,

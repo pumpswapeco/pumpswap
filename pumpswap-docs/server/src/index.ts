@@ -16,17 +16,10 @@ import type { ChatRequest } from "./types";
 const app: Express = express();
 
 // --- CORS ---------------------------------------------------------------
-// allowOrigins comes from config (ALLOW_ORIGINS env, default "*"). It is typed
-// as string[] but stored at runtime as a comma-separated string, so normalize
-// defensively before handing it to the cors middleware.
-const rawAllowOrigins = config.allowOrigins as unknown as string | string[];
-const allowOrigins = Array.isArray(rawAllowOrigins)
-  ? rawAllowOrigins
-  : String(rawAllowOrigins)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-app.use(cors({ origin: allowOrigins.length > 0 ? allowOrigins : "*" }));
+// Config normalizes ALLOW_ORIGINS into a trimmed, non-empty string[]
+// (default ["*"]). Fall back to allowing all origins when the list is empty.
+const allowOrigins = config.allowOrigins.length > 0 ? config.allowOrigins : ["*"];
+app.use(cors({ origin: allowOrigins }));
 
 // --- Safe error logging ---------------------------------------------------
 // Logs the error message and stack trace to the server terminal for diagnosis,
