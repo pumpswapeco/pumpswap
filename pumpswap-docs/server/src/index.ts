@@ -17,9 +17,15 @@ const app: Express = express();
 
 // --- CORS ---------------------------------------------------------------
 // Config normalizes ALLOW_ORIGINS into a trimmed, non-empty string[]
-// (default ["*"]). Fall back to allowing all origins when the list is empty.
-const allowOrigins = config.allowOrigins.length > 0 ? config.allowOrigins : ["*"];
-app.use(cors({ origin: allowOrigins }));
+// (default ["*"]). cors treats ["*"] as a literal origin, not a wildcard,
+// so convert the allow-all case to the bare "*" string. Fall back to
+// allowing all origins when the list is empty.
+const corsOrigin =
+  config.allowOrigins.length === 0 ||
+  (config.allowOrigins.length === 1 && config.allowOrigins[0] === "*")
+    ? "*"
+    : config.allowOrigins;
+app.use(cors({ origin: corsOrigin }));
 
 // --- Safe error logging ---------------------------------------------------
 // Logs the error message and stack trace to the server terminal for diagnosis,

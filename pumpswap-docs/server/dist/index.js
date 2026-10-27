@@ -9,14 +9,11 @@ const config_1 = require("./config");
 const rag_1 = require("./rag");
 const rateLimiter_1 = require("./rateLimiter");
 const app = (0, express_1.default)();
-const rawAllowOrigins = config_1.config.allowOrigins;
-const allowOrigins = Array.isArray(rawAllowOrigins)
-    ? rawAllowOrigins
-    : String(rawAllowOrigins)
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-app.use((0, cors_1.default)({ origin: allowOrigins.length > 0 ? allowOrigins : "*" }));
+const corsOrigin = config_1.config.allowOrigins.length === 0 ||
+    (config_1.config.allowOrigins.length === 1 && config_1.config.allowOrigins[0] === "*")
+    ? "*"
+    : config_1.config.allowOrigins;
+app.use((0, cors_1.default)({ origin: corsOrigin }));
 function sanitizeError(err) {
     const apiKey = config_1.config.geminiApiKey;
     const redact = (input) => {
