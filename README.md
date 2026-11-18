@@ -23,3 +23,7 @@ Install dependencies:
 ```bash
 pnpm install
 
+## Team
+
+Meet the Pumpswap team: TEAM.md
+
