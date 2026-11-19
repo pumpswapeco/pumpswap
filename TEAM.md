@@ -1,8 +1,10 @@
 # Pumpswap Team
  
 ## Samuel Abiodun Ogunnija — CEO & Founder
- 
-Samuel Abiodun Ogunnija
+
+<img src="assets/team/samuel-ogunnija.jpg" width="150" style="border-radius: 50%" alt="Samuel Abiodun Ogunnija" />
+
+ Samuel Abiodun Ogunnija
  
 Samuel leads Pumpswap's vision, strategy, product direction, and ecosystem growth. A former banking professional turned Web3 founder, he brings business experience and a focus on building accessible staking infrastructure for Solana projects.
  
@@ -18,7 +20,9 @@ Samuel leads Pumpswap's vision, strategy, product direction, and ecosystem growt
 
  
 ## Gate Albert — Chief Technology Officer
- 
+
+ <img src="assets/team/gate-albert.png" width="150" style="border-radius: 50%" alt="Gate Albert" />
+
 Gate Albert
  
 Gate is a Solana developer with five years of freelance development experience. He leads Pumpswap's staking platform engineering and smart contract development.
